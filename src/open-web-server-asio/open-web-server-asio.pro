@@ -17,7 +17,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp \
     rocket.cpp \
     asio_server.cpp \
-    client_session.cpp
+    client_session.cpp \
+    client_request.cpp \
+    client_request_parser.cpp
 
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
@@ -26,5 +28,7 @@ mac: LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/dar
 HEADERS += \
     rocket.h \
     asio_server.h \
-    client_session.h
+    client_session.h \
+    client_request.h \
+    client_request_parser.h
 

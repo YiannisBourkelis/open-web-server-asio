@@ -7,6 +7,8 @@
 #include <boost/asio.hpp>
 #include <QByteArray>
 #include <QString>
+#include "client_request.h"
+#include "client_request_parser.h"
 
 using namespace boost::asio;
 
@@ -23,10 +25,9 @@ private:
     //variables
     ip::tcp::socket socket_;
     const int REQUEST_BUFFER_SIZE = 1024;
-    const QByteArray crlf_crlf= "\r\n\r\n";
 
-    QByteArray data_;
-    QByteArray previous_request_data_;
+    ClientRequest client_request_;
+    ClientRequestParser client_request_parser_;
 
     //methods
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
