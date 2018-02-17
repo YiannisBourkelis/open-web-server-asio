@@ -39,10 +39,10 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
     int hostname_idx = client_request.raw_request.indexOf("\nHost: ", http_method_line_end + 1);
     if (hostname_idx != -1){
         //host name beginning found
-        int hostname_idx_end = client_request.raw_request.indexOf("\r", hostname_idx + 6);
+        int hostname_idx_end = client_request.raw_request.indexOf("\r", hostname_idx + 7);
         if (hostname_idx_end != -1){
             //host name end found
-            client_request.hostname = QStringRef(&client_request.raw_request, hostname_idx + 6, hostname_idx_end - (hostname_idx + 6) );
+            client_request.hostname = QStringRef(&client_request.raw_request, hostname_idx + 7, hostname_idx_end - (hostname_idx + 7) );
             //std::string hostname_str(request.begin() + hostname_idx + 6, request.begin() + hostname_idx_end);
         }
     }
@@ -98,7 +98,7 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
     return 0;
 }
 
-bool ClientRequestParser::proccess_new_data(size_t bytes_transferred)
+bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequest &client_request)
 {
     //usually a client http request is less than 1024 bytes, so it fits
     //inside the buffer in a single read. Because of this and for performanse reasons
@@ -107,6 +107,7 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred)
     //request was incomplete, so in this case we should proccess the request in the else statement that follows
     int first_index_of_crlfcrlf = data_.indexOf(crlf_crlf);
     if (first_index_of_crlfcrlf == bytes_transferred - 4 && previous_request_data_.size() == 0){
+        parse(data_, client_request);
         return true;
     } else {
         //to request den exei symplirwthei akoma opote apothikevoume prosorina oti lifthike
@@ -116,6 +117,7 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred)
         //to mynima symplirwthike opote tha to lanw parse
         first_index_of_crlfcrlf = previous_request_data_.indexOf(crlf_crlf);
         if (first_index_of_crlfcrlf > -1){
+            parse(data_, client_request);
             return true;
             previous_request_data_.clear();
         } else {
@@ -124,13 +126,4 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred)
     }
 
     return false;
-
-    //Read some data from the client and invoke the callback
-    //to proccess the client request
-    /*
-    socket_.async_read_some(boost::asio::buffer(data_.data(), REQUEST_BUFFER_SIZE),
-                            boost::bind(&ClientSession::handle_read, this,
-                            boost::asio::placeholders::error,
-                            boost::asio::placeholders::bytes_transferred));
-                            */
 }

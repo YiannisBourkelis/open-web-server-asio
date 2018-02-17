@@ -33,7 +33,7 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
                                    "\r\n\r\n"
                                    "Hello");
 
-        if (client_request_parser_.proccess_new_data(bytes_transferred)){
+        if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
 
             boost::asio::async_write(socket_,
                                      boost::asio::buffer(respstr.data(), respstr.size()),

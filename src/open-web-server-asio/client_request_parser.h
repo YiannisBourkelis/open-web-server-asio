@@ -9,7 +9,7 @@ class ClientRequestParser
 public:
     ClientRequestParser();
     static int parse(QByteArray &data, ClientRequest &client_request);
-    bool proccess_new_data(size_t bytes_transferred);
+    bool proccess_new_data(size_t bytes_transferred, ClientRequest &client_request);
 
     const int REQUEST_BUFFER_SIZE = 1024;
     const QByteArray crlf_crlf= "\r\n\r\n";
