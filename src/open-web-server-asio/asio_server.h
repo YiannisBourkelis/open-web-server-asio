@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include "client_session.h"
+//#include "server_config.h"
 
 using namespace boost::asio;
 

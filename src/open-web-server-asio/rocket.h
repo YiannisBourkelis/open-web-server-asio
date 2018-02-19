@@ -2,6 +2,8 @@
 #define ROCKET_H
 
 #include <boost/asio.hpp>
+#include <unordered_map>
+#include <asio_server.h>
 
 using namespace boost::asio;
 
@@ -11,6 +13,7 @@ public:
     rocket();
 
     void takeoff();
+    std::unordered_map<short, AsioServer*> servers_;
 
 private:
     boost::asio::io_service io_service_;

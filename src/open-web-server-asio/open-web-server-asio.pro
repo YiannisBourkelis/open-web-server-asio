@@ -19,7 +19,14 @@ SOURCES += main.cpp \
     asio_server.cpp \
     client_session.cpp \
     client_request.cpp \
-    client_request_parser.cpp
+    client_request_parser.cpp \
+    client_response.cpp \
+    server_config.cpp \
+    server_config_virtualhost.cpp \
+    server_config_parser_base.cpp \
+    server_config_json_parser.cpp \
+    server_config_virtualhost_portinfo.cpp \
+    http_response_templates.cpp
 
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
@@ -30,5 +37,13 @@ HEADERS += \
     asio_server.h \
     client_session.h \
     client_request.h \
-    client_request_parser.h
+    client_request_parser.h \
+    client_response.h \
+    server_config.h \
+    server_config_virtualhost.h \
+    qstring_hash_specialization.h \
+    server_config_parser_base.h \
+    server_config_json_parser.h \
+    server_config_virtualhost_portinfo.h \
+    http_response_templates.h
 

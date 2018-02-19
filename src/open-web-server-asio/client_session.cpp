@@ -1,10 +1,16 @@
 #include "client_session.h"
+#include "server_config.h"
+#include "http_response_templates.h"
+
+const QMimeDatabase ClientSession::mime_db_;
+const int ClientSession::FILE_CHUNK_SIZE;
 
 //constructor
 ClientSession::ClientSession(boost::asio::io_service& io_service) : socket_(io_service)
 {
     //resize the buffer to accept the request.
     //data_.resize(REQUEST_BUFFER_SIZE);
+    //client_response_generator_.socket = &this->socket();
 }
 
 //returns the active client session socket
@@ -27,18 +33,31 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
 {
     if (!error)
     {
+
+        /*
+        //benchmarking
         std::string respstr ("HTTP/1.1 200 OK\r\n"
                                    "Content-Type: text/html; charset=utf-8\r\n"
                                    "Content-Length: 5"
                                    "\r\n\r\n"
                                    "Hello");
+                                   */
 
+        //first check to see if the data arrived from the client forms a complete
+        //http request message (contains or ends with /r/n/r/n).
         if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
+            //ok, we have a complete client request. now lets process this request
+            //and generate a response to send it to the client
+            process_client_request();
 
+            /*
+            //benchmarking
             boost::asio::async_write(socket_,
                                      boost::asio::buffer(respstr.data(), respstr.size()),
                                      boost::bind(&ClientSession::handle_write, this,
                                      boost::asio::placeholders::error));
+                                     */
+
         } else {
             socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
                                     boost::bind(&ClientSession::handle_read, this,
@@ -54,17 +73,98 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
 } //void ClientSession::handle_read
 
 
+void ClientSession::process_client_request()
+{
+    //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
+    QFile file_io;
+    if (try_get_request_uri_resource(file_io)){
+        // vrethike to arxeio, opote to diavazw gia na to stelnw ston client pou to zitise
+        read_requested_file(file_io);
+    }
+}
+
+//TOTO: na vrw taxytero tropo wste na mi xreiazetai metatropi apo to qstring _200_OK sto str::string response_header_str
+void ClientSession::read_requested_file(QFile &file_io){
+    //QByteArray http_response = file_io.readAll();
+
+    //lamvanw to mime tou arxeiou gia na to
+    //steilw sto response
+    QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+    std::string response_header_str = HTTP_Response_Templates::_200_OK.arg(mime_type_.name(), QString::number(file_io.size())).toStdString();
+
+    auto file_size = file_io.size();//to krataw edw mipws kai allaksei to size kai exei allo megethos to response vector
+    auto total_response_size =  file_size + response_header_str.size();
+
+    std::vector<char> response;
+    response.reserve(total_response_size);
+    response.insert(response.end(), response_header_str.begin(), response_header_str.end());
+    response.resize(total_response_size);
+
+    file_io.read(response.data() + response_header_str.size(), file_size);
+
+    client_request_.response.current_state = ClientResponse::state::single_send;
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(response.data(), total_response_size),
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
+}
+
+//prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
+bool ClientSession::try_get_request_uri_resource(QFile &file_io){
+    //elegxw ean to hostname pou zitithike anikei se virtual server.
+    //1. Ean anikei, thetei sto client_request.response.absolute_hostname_and_requested_path_
+    //to absolute path gia to uri pou zitithike.
+    //2. Ean den anikei tote psaxei ean yparxei default vistual host
+    if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
+        return false;
+    }
+
+    //elegxw ean to path pou zitithike den einai malicious
+    if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)) return false;
+
+    //prospathw na anoiksw to arxeio pou zitithike
+    file_io.setFileName(client_request_.response.absolute_hostname_and_requested_path);
+    if (file_io.open(QFileDevice::ReadOnly) == false) {
+        //Ean den vrethike to arxeio pou zitithike, elegxw ta indexes
+        if (ServerConfig::index_exists(client_request_, file_io) == false){
+            //ean to arxeio den yparxei sto filesystem, epistrefw false, wste na ginei
+            //elegxos sti synexeia, ean prokeitai gia directory, i na epistrafei 404 sfalma
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ClientSession::is_malicious_path(QString &path)
+{
+    //Directory traversal attack
+    //https://en.wikipedia.org/wiki/Directory_traversal_attack
+    //https://www.owasp.org/index.php/Path_Traversal
+    //https://www.owasp.org/index.php/File_System#Path_traversal
+    //https://cwe.mitre.org/data/definitions/23.html
+
+    return path.contains("..");
+}
+
 //
 void ClientSession::handle_write(const boost::system::error_code& error)
 {
     if (!error){
 
-        socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                boost::bind(&ClientSession::handle_read, this,
-                                boost::asio::placeholders::error,
-                                boost::asio::placeholders::bytes_transferred));
+        if (client_request_.response.current_state == ClientResponse::state::single_send){
+            //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
+            //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
+            socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                    boost::bind(&ClientSession::handle_read, this,
+                                    boost::asio::placeholders::error,
+                                    boost::asio::placeholders::bytes_transferred));
+        } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
+            //to arxeio prepei na apostalei se tmimata opote sinexizw tin apostoli apo ekei pou meiname
+
+        }
 
     } else {
         delete this;
     }
 }//void ClientSession::handle_write
+

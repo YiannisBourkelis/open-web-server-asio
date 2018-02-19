@@ -1,7 +1,7 @@
 #include "asio_server.h"
 
 //constructor. Starts the server and begins accepting connections
-AsioServer::AsioServer(boost::asio::io_service& io_service, short port) :
+AsioServer::AsioServer(io_service &io_service, short port) :
     io_service_(io_service),
     acceptor_(io_service, ip::tcp::endpoint(ip::tcp::v4(), port))
 {
@@ -11,8 +11,9 @@ AsioServer::AsioServer(boost::asio::io_service& io_service, short port) :
 
     //create a client session object where we will handle the communication with the client.
     ClientSession *new_session = new ClientSession(this->io_service_); //= new ClientSession(io_service_);
+
     //When a new client connects, call AsioServer::handle_accept accept
-    //so that we can accept the new clients and begin communicatinf with him.
+    //so that we can accept the new client and begin communicating with him.
     //Notice that we pass the new_session object we created.
     acceptor_.async_accept(new_session->socket(),
                            boost::bind(&AsioServer::handle_accept, this, new_session,

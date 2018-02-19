@@ -1,0 +1,52 @@
+ {
+
+
+  "http" :
+  [
+
+
+    {
+      "virtual_host" : {
+        "server_name": ["localhost", "www.localhost"],
+
+        "listen" : [
+          {"port" : 12343}
+        ],
+
+        "document_root" : "/Users/yiannis/www/localhost/public_html",
+        "directory_listing" : true
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["*"],
+
+        "listen" : [
+          {"port" : 12344}
+        ],
+
+        "document_root" : "/Users/yiannis/www/default/public_html",
+        "directory_listing" : true
+      }
+    }
+
+
+  ],
+
+  "server" : {
+
+    "cache" : {
+      "total_size" : "102400",
+      "maximum_file_size" : "5120",
+      "cleanup_percentage" : "15"
+    },
+
+    "send_file_chunk_size" : "32768",
+
+    "indexes" : ["72b.htm","cristian-lozan-371388.jpg","index.html","index.htm","default.html","default.htm"]
+  }
+
+
+
+}

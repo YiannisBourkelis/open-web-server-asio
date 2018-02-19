@@ -6,21 +6,26 @@ ClientRequestParser::ClientRequestParser()
     data_.resize(REQUEST_BUFFER_SIZE);
 }
 
+//static
 int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
 {
+    //na koitaksw na to ylopoiisw me state achine.
+    //isws to http://www.boost.org/doc/libs/1_66_0/libs/statechart/doc/index.html
+    //na voithaei stin ylopoiisi
+
     //metatrepw to client request se string gia na to analysw
-    client_request.raw_request = QString(data);
+  client_request.raw_request = QString(data);
 
 
     //******************************************
     //lamvanw to directory pou zitithike
     //GET dir /r/n
     //int get_start = request.find("G");
-    int http_method_line_end;
+    int http_method_line_end = 0;
     bool is_get_request = data.startsWith("G");
     if (is_get_request){
         int get_end = data.indexOf(" ", 4);
-        client_request.uri = QStringRef(&client_request.raw_request, 4, get_end - 4);
+        client_request.uri = client_request.raw_request.mid(4, get_end - 4);
         http_method_line_end = get_end + 9;
     }
     //std::string url(request.begin() + 4, request.begin() + get_end);
@@ -42,7 +47,7 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
         int hostname_idx_end = client_request.raw_request.indexOf("\r", hostname_idx + 7);
         if (hostname_idx_end != -1){
             //host name end found
-            client_request.hostname = QStringRef(&client_request.raw_request, hostname_idx + 7, hostname_idx_end - (hostname_idx + 7) );
+            client_request.hostname = client_request.raw_request.mid(hostname_idx + 7, hostname_idx_end - (hostname_idx + 7));
             //std::string hostname_str(request.begin() + hostname_idx + 6, request.begin() + hostname_idx_end);
         }
     }
