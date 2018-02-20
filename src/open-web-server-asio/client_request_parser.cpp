@@ -9,7 +9,7 @@ ClientRequestParser::ClientRequestParser()
 //static
 int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
 {
-    //na koitaksw na to ylopoiisw me state achine.
+    //na koitaksw na to ylopoiisw me state machine.
     //isws to http://www.boost.org/doc/libs/1_66_0/libs/statechart/doc/index.html
     //na voithaei stin ylopoiisi
 
