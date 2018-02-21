@@ -1,6 +1,8 @@
 #include "client_session.h"
 #include "server_config.h"
 #include "http_response_templates.h"
+#include "rocket.h"
+#include "cache_content.h"
 
 const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
@@ -75,17 +77,114 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
 
 void ClientSession::process_client_request()
 {
-    //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
-    QFile file_io;
-    if (try_get_request_uri_resource(file_io)){
-        // vrethike to arxeio, opote to diavazw gia na to stelnw ston client pou to zitise
-        client_request_.response.bytes_of_file_sent = 0;
-        read_requested_file(file_io);
+    //as fast as possible i have to check if the requested file
+    //exist in the cache. This way the latency is reduced to the minimum for
+    //the files that exist in the cache.
+    client_request_.cache_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_uri);
+    if (client_request_.cache_iterator != rocket::cache.cached_items.end()){
+        //to arxeio yparxei stin cache
+        send_file_from_cache();
+    } else {
+        //to arxeio den yparxei stin cache opote elegxw ean mporei na kataxwrithei afou prwta
+        //elenksw ean o sindiasmos hostname kai uri yparxei
+        //elegxw ean to hostname pou zitithike anikei se virtual server.
+        //1. Ean yparxei, thetei sto client_request.response.absolute_hostname_and_requested_path_
+        //to absolute path gia to uri pou zitithike.
+        //2. Ean den yparxei tote psaxei ean yparxei default vistual host
+        QFile file_io;
+        if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
+            //TODO: den vrethike to hostname pou zitithike
+            return;
+        }
+
+        //elegxw ean to path pou zitithike den einai malicious
+        if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)){
+            //TODO: malicious_path
+            return;
+        }
+
+        if (try_get_request_uri_resource(file_io) == false){
+            return;
+            //TODO: den yparxei to file pou zitithike
+        }
+
+        //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
+        //cache, ean xwraei, kai sti synexeia tha to steilw ston client poy to zitise
+        if (add_to_cache_if_fits(file_io)){
+            //ok, to arxeio mpike stin cache opote to apostelw ston client
+            send_file_from_cache();
+            return;
+        } else {
+            //to arxeio den mporei na mpei stin cache, opote
+            //to stelnw diavazontas to apeftheias apo to meso apothikefsis.
+            client_request_.response.bytes_of_file_sent = 0;
+            read_and_send_requested_file(file_io);
+        }
     }
+
+}
+
+bool ClientSession::add_to_cache_if_fits(QFile &file_io){
+    //elegxw ean to megethos tou arxeiou epitrepetai na mpei stin cache
+    if (file_io.size() <= rocket::cache.max_file_size){
+        //elegxw ean to neo arxeio epitrepetai na mpei stin cache
+        auto file_size = file_io.size();
+        auto cache_size_with_new_file = rocket::cache.cache_current_size + file_size;
+        if (cache_size_with_new_file <= rocket::cache.cache_max_size){
+            //ok mporei na mpei stin cache, opote to topothetw
+
+            //fortwnw to axeio sto prosorino vector
+            std::vector<char> response_body_vect(file_size);
+            file_io.read(response_body_vect.data(), file_size);
+
+            //enimerwnw to yparxon megethos tis cache
+            rocket::cache.cache_current_size = cache_size_with_new_file;
+            QString mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name();
+            CacheContent cache_content(response_body_vect, mime_);//TODO: na ylopoiisw diki mou function gia lipsi mime. einai ligo argi afti tou Qt
+
+
+            //kataxwrw to file stin cache kai lamvanw referense pros afto
+            //wste na ginei apostoli tou meta
+            client_request_.cache_iterator = rocket::cache.cached_items.emplace(
+                        std::make_pair(CacheKey(client_request_.hostname_and_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
+
+            //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
+            //shared_cache_.file_system_watcher.addPath(client_session.request.absolute_hostname_and_requested_path_);
+            return true;
+        }
+    }
+    return false; //to arxeio den epitrepetai na mpei stin cache
+}
+
+/*
+void ClientSession::send_file_from_cache(){
+    //apostelw prwta ta headers
+    client_request_.response.header = HTTP_Response_Templates::_200_OK.arg("text/html", QString::number(client_request_.cache_iterator->second.size())).toStdString();
+
+    client_request_.response.current_state = ClientResponse::state::cache_header_send;
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
+}
+*/
+void ClientSession::send_file_from_cache(){
+    //apostelw prwta ta headers
+    client_request_.response.header = HTTP_Response_Templates::_200_OK.arg(client_request_.cache_iterator->second.mime_type, QString::number(client_request_.cache_iterator->second.data.size())).toStdString();
+
+    std::vector<boost::asio::const_buffer> buffers;
+    buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
+    buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+
+    client_request_.response.current_state = ClientResponse::state::single_send;
+    boost::asio::async_write(socket_,
+                             buffers,
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
 }
 
 //TOTO: na vrw taxytero tropo wste na mi xreiazetai metatropi apo to qstring _200_OK sto str::string response_header_str
-void ClientSession::read_requested_file(QFile &file_io){
+void ClientSession::read_and_send_requested_file(QFile &file_io){
     size_t file_size = file_io.size();//to krataw edw mipws kai allaksei to size kai exei allo megethos to response vector
 
     //elegxw ean to arxeio tha apostalei me ti mia i se tmimata
@@ -146,17 +245,6 @@ void ClientSession::read_requested_file(QFile &file_io){
 
 //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
 bool ClientSession::try_get_request_uri_resource(QFile &file_io){
-    //elegxw ean to hostname pou zitithike anikei se virtual server.
-    //1. Ean anikei, thetei sto client_request.response.absolute_hostname_and_requested_path_
-    //to absolute path gia to uri pou zitithike.
-    //2. Ean den anikei tote psaxei ean yparxei default vistual host
-    if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
-        return false;
-    }
-
-    //elegxw ean to path pou zitithike den einai malicious
-    if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)) return false;
-
     //prospathw na anoiksw to arxeio pou zitithike
     file_io.setFileName(client_request_.response.absolute_hostname_and_requested_path);
     if (file_io.open(QFileDevice::ReadOnly) == false) {
@@ -185,8 +273,14 @@ bool ClientSession::is_malicious_path(QString &path)
 void ClientSession::handle_write(const boost::system::error_code& error)
 {
     if (!error){
+        if (client_request_.response.current_state == ClientResponse::state::cache_header_send){
+        client_request_.response.current_state = ClientResponse::state::single_send;
+        boost::asio::async_write(socket_,
+                                 boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
 
-        if (client_request_.response.current_state == ClientResponse::state::single_send){
+        } else if (client_request_.response.current_state == ClientResponse::state::single_send){
             client_request_.response.current_state = ClientResponse::state::begin;
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
@@ -194,12 +288,13 @@ void ClientSession::handle_write(const boost::system::error_code& error)
                                     boost::bind(&ClientSession::handle_read, this,
                                     boost::asio::placeholders::error,
                                     boost::asio::placeholders::bytes_transferred));
+
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
             //to arxeio prepei na apostalei se tmimata opote sinexizw tin apostoli apo ekei pou meiname
             client_request_.response.bytes_of_file_sent += FILE_CHUNK_SIZE;
             QFile file_io (client_request_.response.absolute_hostname_and_requested_path);
             file_io.open(QFileDevice::ReadOnly);
-            read_requested_file(file_io);
+            read_and_send_requested_file(file_io);
         }
 
     } else {

@@ -1,5 +1,5 @@
 #include "client_request_parser.h"
-#include <QStringRef>
+#include <QStringBuilder>
 
 ClientRequestParser::ClientRequestParser()
 {
@@ -12,6 +12,8 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
     //na koitaksw na to ylopoiisw me state machine.
     //isws to http://www.boost.org/doc/libs/1_66_0/libs/statechart/doc/index.html
     //na voithaei stin ylopoiisi
+
+    //episis gia parsing na dw mipws einai kalo to boost.spirit
 
     //metatrepw to client request se string gia na to analysw
   client_request.raw_request = QString(data);
@@ -52,6 +54,9 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
         }
     }
     //******************************************
+
+    //enonw to hostname me to uri
+    client_request.hostname_and_uri = client_request.hostname % client_request.uri;
 
     //******************************************
     //elegxos ean einai HTTP/1.0

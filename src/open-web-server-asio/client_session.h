@@ -45,9 +45,11 @@ private:
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
     void handle_write(const boost::system::error_code &error);
     void process_client_request();
-    void read_requested_file(QFile &file_io);
+    void read_and_send_requested_file(QFile &file_io);
     bool try_get_request_uri_resource(QFile &file_io);
     static bool is_malicious_path(QString &path);
+    bool add_to_cache_if_fits(QFile &file_io);
+    void send_file_from_cache();
 };
 
 #endif // CLIENT_SESSION_H

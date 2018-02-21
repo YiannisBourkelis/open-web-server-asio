@@ -26,7 +26,10 @@ SOURCES += main.cpp \
     server_config_parser_base.cpp \
     server_config_json_parser.cpp \
     server_config_virtualhost_portinfo.cpp \
-    http_response_templates.cpp
+    http_response_templates.cpp \
+    cache.cpp \
+    cache_key.cpp \
+    cache_content.cpp
 
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
@@ -45,5 +48,8 @@ HEADERS += \
     server_config_parser_base.h \
     server_config_json_parser.h \
     server_config_virtualhost_portinfo.h \
-    http_response_templates.h
+    http_response_templates.h \
+    cache.h \
+    cache_key.h \
+    cache_content.h
 

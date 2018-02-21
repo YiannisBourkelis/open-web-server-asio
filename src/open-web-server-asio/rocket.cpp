@@ -3,6 +3,8 @@
 #include "server_config_json_parser.h"
 #include "server_config.h"
 
+Cache rocket::cache;
+
 rocket::rocket()
 {
 

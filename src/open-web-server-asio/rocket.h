@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <unordered_map>
 #include <asio_server.h>
+#include "cache.h"
 
 using namespace boost::asio;
 
@@ -14,6 +15,7 @@ public:
 
     void takeoff();
     std::unordered_map<short, AsioServer*> servers_;
+    static Cache cache;
 
 private:
     boost::asio::io_service io_service_;
