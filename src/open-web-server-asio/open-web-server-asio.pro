@@ -39,8 +39,7 @@ windows:LIBS += -LC:\Downloads\boost_1_66_0\stage\lib -lboost_date_time
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
 mac:LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/darwin-gnu-4.2.1/release/threadapi-pthread/threading-multi -lboost_system
 
-windows: INCLUDEPATH += "C:/Libraries/boost_1_65_1"
-windows:
+linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
 
 HEADERS += \
     rocket.h \

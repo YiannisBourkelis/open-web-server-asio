@@ -7,6 +7,7 @@
 #include "cache.h"
 #include <string>
 #include <chrono>
+#include <QCoreApplication>
 
 using namespace boost::asio;
 

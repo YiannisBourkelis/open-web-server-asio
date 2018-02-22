@@ -13,7 +13,7 @@
           {"port" : 12343}
         ],
 
-        "document_root" : "/Users/yiannis/www/localhost/public_html",
+        "document_root" : "/home/yiannis/projects/www/localhost",
         "directory_listing" : true
       }
     },

@@ -8,6 +8,7 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+    QCoreApplication::processEvents();
 
     rocket rocket_;
     rocket_.takeoff();
