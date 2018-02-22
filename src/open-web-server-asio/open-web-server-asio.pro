@@ -29,7 +29,8 @@ SOURCES += main.cpp \
     http_response_templates.cpp \
     cache.cpp \
     cache_key.cpp \
-    cache_content.cpp
+    cache_content.cpp \
+    cache_remove.cpp
 
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
@@ -51,5 +52,6 @@ HEADERS += \
     http_response_templates.h \
     cache.h \
     cache_key.h \
-    cache_content.h
+    cache_content.h \
+    cache_remove.h
 

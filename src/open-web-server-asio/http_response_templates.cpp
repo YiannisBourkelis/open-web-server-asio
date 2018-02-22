@@ -20,10 +20,52 @@
 
 #include "http_response_templates.h"
 
+/*
 const QString HTTP_Response_Templates::_200_OK = ("HTTP/1.1 200 OK\r\n"
                                                     "Content-Type: %0; charset=utf-8\r\n"
                                                     "Content-Length: %1\r\n"
                                                     "\r\n");
+                                                    */
+
+const QString HTTP_Response_Templates::_200_OK_NOT_CACHED_ = ( "HTTP/1.1 200 OK\r\n"
+                                                    "Server: openw/1.10.1\r\n"
+                                                    "Content-Type: %0\r\n"
+                                                    "Content-Length: %1\r\n"
+                                                    "Connection: keep-alive\r\n"
+                                                    "Accept-Ranges: bytes\r\n\r\n");
+
+
+
+QString HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE = (
+                                                    "HTTP/1.1 200 OK\r\n"
+                                                    "Server: openw/1.10.1\r\n"
+                                                    "Date: Wed, 21 Feb 2018 03:01:27 GMT\r\n"
+                                                    "Content-Type: ");
+QString HTTP_Response_Templates::_200_OK_CONTENT_LENGTH = (
+                                                    "\r\nContent-Length: ");
+QString HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE = (
+                                                    "\r\n"
+                                                    "Last-Modified: Sat, 20 Jan 2018 09:34:52 GMT\r\n"
+                                                    "Connection: keep-alive\r\n"
+                                                    "ETag: ""5a630d3c-6b""\r\n"
+                                                    "Accept-Ranges: bytes\r\n\r\n");
+
+std::string HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ = (
+                                                    "HTTP/1.1 200 OK\r\n"
+                                                    "Server: openw/1.10.1\r\n"
+                                                    "Date: ");
+std::string HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_ = (
+                                                    "\r\n"
+                                                    "Content-Type: ");
+std::string HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_ = (
+                                                    "\r\nContent-Length: ");
+std::string HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_ = (
+                                                    "\r\n"
+                                                    "Last-Modified: ");
+std::string HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ = (
+                                                    "\r\nConnection: keep-alive\r\n"
+                                                    "ETag: \"");
+std::string HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE = ("\"\r\nAccept-Ranges: bytes\r\n\r\n");
 
 const QString HTTP_Response_Templates::_206_PARTIAL_CONTENT_RESPONSE_HEADER = ("HTTP/1.1 206 Partial Content\r\n"
                                                                                 "Content-Type: %0\r\n"

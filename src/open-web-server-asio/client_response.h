@@ -14,8 +14,7 @@ public:
     enum class state{
         begin,
         single_send,
-        chunk_send,
-        cache_header_send
+        chunk_send
     };
 
     state current_state = state::begin;//at which state of the response we are

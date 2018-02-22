@@ -23,6 +23,7 @@
 
 #include <QString>
 #include <vector>
+#include <string>
 
 class HTTP_Response_Templates
 {
@@ -30,7 +31,19 @@ public:
     HTTP_Response_Templates();
 
     //static variables
-    static const QString _200_OK;
+    static const QString _200_OK_NOT_CACHED_;
+
+    static QString _200_OK_UNTIL_CONTENT_TYPE_VALUE;
+    static QString _200_OK_CONTENT_LENGTH;
+    static QString _200_OK_AFTER_CONTENT_LENGTH_VALUE;
+
+    static std::string _200_OK_UNTIL_DATE_VALUE_;
+    static std::string _200_OK_UNTIL_CONTENT_TYPE_VALUE_;
+    static std::string _200_OK_CONTENT_LENGTH_;
+    static std::string _200_OK_AFTER_CONTENT_LENGTH_VALUE_;
+    static std::string _200_OK_AFTER_LAST_MODIFIED_;
+    static std::string _200_OK_AFTER_ETAG_VALUE;
+
     static const QString _206_PARTIAL_CONTENT_RESPONSE_HEADER;
     static const QString _DIRECTORY_LISTING_;
     static const QString _404_NOT_FOUND_;

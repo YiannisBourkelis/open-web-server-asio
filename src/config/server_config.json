@@ -26,7 +26,7 @@
           {"port" : 12344}
         ],
 
-        "document_root" : "/Users/yiannis/www/default/public_html",
+        "document_root" : "/Users/yiannis/www/localhost/public_html",
         "directory_listing" : true
       }
     }

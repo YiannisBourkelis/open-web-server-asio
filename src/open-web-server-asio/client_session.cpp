@@ -3,6 +3,9 @@
 #include "http_response_templates.h"
 #include "rocket.h"
 #include "cache_content.h"
+#include <QStringBuilder>
+#include <QDateTime>
+#include <time.h>
 
 const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
@@ -139,8 +142,15 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
 
             //enimerwnw to yparxon megethos tis cache
             rocket::cache.cache_current_size = cache_size_with_new_file;
-            QString mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name();
-            CacheContent cache_content(response_body_vect, mime_);//TODO: na ylopoiisw diki mou function gia lipsi mime. einai ligo argi afti tou Qt
+            std::string mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name().toStdString();
+
+            std::string etag_ = rocket::get_next_etag();
+            std::string modified_date_ = (file_io.fileTime(QFileDevice::FileModificationTime).toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT").toStdString(); //TODO: formating a QDateTime is very slow.
+            CacheContent cache_content(response_body_vect,
+                                       mime_,
+                                       modified_date_,
+                                       etag_
+                                       );//TODO: na ylopoiisw diki mou function gia lipsi mime. einai ligo argi afti tou Qt
 
 
             //kataxwrw to file stin cache kai lamvanw referense pros afto
@@ -149,28 +159,28 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
                         std::make_pair(CacheKey(client_request_.hostname_and_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
 
             //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
-            //shared_cache_.file_system_watcher.addPath(client_session.request.absolute_hostname_and_requested_path_);
+            rocket::cache.file_system_watcher.addPath(client_request_.response.absolute_hostname_and_requested_path);
             return true;
         }
     }
     return false; //to arxeio den epitrepetai na mpei stin cache
 }
 
-/*
-void ClientSession::send_file_from_cache(){
-    //apostelw prwta ta headers
-    client_request_.response.header = HTTP_Response_Templates::_200_OK.arg("text/html", QString::number(client_request_.cache_iterator->second.size())).toStdString();
 
-    client_request_.response.current_state = ClientResponse::state::cache_header_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
-}
-*/
 void ClientSession::send_file_from_cache(){
     //apostelw prwta ta headers
-    client_request_.response.header = HTTP_Response_Templates::_200_OK.arg(client_request_.cache_iterator->second.mime_type, QString::number(client_request_.cache_iterator->second.data.size())).toStdString();
+    client_request_.response.header =
+            HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ +
+            rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time) + //get the current datetime as a string and store the current datetime as a time_t value in the last_access_time field.
+            HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_ +
+            client_request_.cache_iterator->second.mime_type +
+            HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_ +
+            std::to_string(client_request_.cache_iterator->second.data.size()) +
+            HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_ +
+            client_request_.cache_iterator->second.last_modified +
+            HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ +
+            client_request_.cache_iterator->second.etag +
+            HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE;
 
     std::vector<boost::asio::const_buffer> buffers;
     buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
@@ -197,7 +207,10 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
             QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
-            std::string response_header_str = HTTP_Response_Templates::_200_OK.arg(mime_type_.name(), QString::number(remaining_file_size)).toStdString();
+            std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
+                        mime_type_.name(),
+                        QString::number(remaining_file_size)
+                        ).toStdString();
             total_response_size =  file_size + response_header_str.size();
             client_request_.response.data.reserve(total_response_size);
             client_request_.response.data.insert(client_request_.response.data.end(), response_header_str.begin(), response_header_str.end());
@@ -219,7 +232,10 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
             QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
-            std::string response_header_str = HTTP_Response_Templates::_200_OK.arg(mime_type_.name(), QString::number(remaining_file_size)).toStdString();
+            std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
+                        mime_type_.name(),
+                        QString::number(remaining_file_size)
+                        ).toStdString();
 
             total_response_size =  FILE_CHUNK_SIZE + response_header_str.size();
             client_request_.response.data.reserve(total_response_size);
@@ -273,14 +289,7 @@ bool ClientSession::is_malicious_path(QString &path)
 void ClientSession::handle_write(const boost::system::error_code& error)
 {
     if (!error){
-        if (client_request_.response.current_state == ClientResponse::state::cache_header_send){
-        client_request_.response.current_state = ClientResponse::state::single_send;
-        boost::asio::async_write(socket_,
-                                 boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()),
-                                 boost::bind(&ClientSession::handle_write, this,
-                                 boost::asio::placeholders::error));
-
-        } else if (client_request_.response.current_state == ClientResponse::state::single_send){
+        if (client_request_.response.current_state == ClientResponse::state::single_send){
             client_request_.response.current_state = ClientResponse::state::begin;
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi

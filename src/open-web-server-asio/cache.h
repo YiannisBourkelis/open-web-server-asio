@@ -32,31 +32,38 @@
 #include <QCoreApplication>
 #include "server_config.h"
 #include "cache_content.h"
+#include <boost/asio.hpp>
 
 class Cache : public QObject
 {
     Q_OBJECT
 public:
-    Cache();
+    Cache(boost::asio::io_service &io_service_);
 
     //public variables
     //TODO: ta parakatw prepei na mpoun sto server config file
     //kai na lamvanoun times apo ekei
-    long long int max_file_size = 20971520; // [20971520 20MB, 1048576 1MB] megixto megethos arxeiou pou mporei na mpoei stin cache
+    long long int max_file_size = 20971520; // [default=20971520 20MB, 1048576 1MB] megixto megethos arxeiou pou mporei na mpoei stin cache
     long long int cache_max_size = 419430400; //400MB megixto megethos cache
+    double cache_clenup_percentage = 0.20; // when the cache becomes full, the remove_older_items function is called and cache_clenup_percentage bytes of the cache_max_size bytes will be removed from the cache
     long long int cache_current_size = 0;
     QFileSystemWatcher file_system_watcher;
 
-    QString server_config_filename = "server_config.json";
-    QString app_path = QCoreApplication::applicationDirPath();
-
+    /************ THE CACHE ************/
     std::unordered_map<CacheKey, CacheContent> cached_items;
-    ServerConfig *server_config_;
+    /***********************************/
+
+    void initialize();
 
 public slots:
     void slot_fileChanged(const QString &path);
 
 private:
+    boost::asio::deadline_timer cache_timer_;
+    void cache_monitor_tick(const boost::system::error_code &);
+    void init_cache_monitor();
+    void init_file_monitor();
+    void remove_older_items();
 };
 
 #endif // CACHE_H
