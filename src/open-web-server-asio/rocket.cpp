@@ -26,7 +26,7 @@ void rocket::takeoff()
     //This file contains all the server settings regarding
     //virtual hosts, index pages, cache size etc.
 
-    ServerConfig::ServerConfig();//init the server config.
+    ServerConfig::initialize();//init the server config.
 
     ServerConfigJsonParser server_config_json_parser;//this will parse the default server_config.json file.
     ServerConfig::server_config_parser = &server_config_json_parser;

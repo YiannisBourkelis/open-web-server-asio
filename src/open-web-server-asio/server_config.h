@@ -57,6 +57,7 @@ public:
     static bool is_valid_requested_hostname(ClientRequest &client_request);
     static bool index_exists(ClientRequest &client_request, QFile & file_io);
     //static AsioServer create_asio_server(boost::asio::io_service &io_service, short port);
+    static void initialize();
 };
 
 #endif // SERVER_CONFIG_H

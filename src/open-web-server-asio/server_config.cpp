@@ -33,6 +33,9 @@ QString ServerConfig::config_file_path;
 
 ServerConfig::ServerConfig()
 {
+}
+
+void ServerConfig::initialize(){
     //ServerConfig::server_config_parser = server_config_parser_base_;
 
     //store the application path and the config file name in the static variables
