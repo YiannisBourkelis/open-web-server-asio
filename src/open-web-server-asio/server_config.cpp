@@ -43,7 +43,6 @@ void ServerConfig::initialize(){
     QDir tmp_server_config_file_path(ServerConfig::application_path);
     tmp_server_config_file_path.cdUp();
     ServerConfig::config_file_path = QFileInfo(tmp_server_config_file_path.absolutePath() + QString("/config/server_config.json")).filePath();
-    std::cout << "ok";
 }
 
 bool ServerConfig::parse_config_file(QString filename)

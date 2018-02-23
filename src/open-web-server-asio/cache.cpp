@@ -132,6 +132,7 @@ void Cache::remove_older_items()
 //so that we can update the cache items in case a local file is deleted/modified
 //and exist in the cache, or there is a change in the config file
 void Cache::init_cache_monitor(){
+    //call cache_monitor_tick asynchronously every 2 seconds
     boost::posix_time::time_duration tick_period(0,0,2,0);
     cache_timer_.expires_from_now(tick_period);
     cache_timer_.async_wait(boost::bind(&Cache::cache_monitor_tick, this,

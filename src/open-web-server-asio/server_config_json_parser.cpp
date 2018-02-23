@@ -23,6 +23,7 @@
 #include <iostream>
 #include <fstream>
 #include "json.hpp"
+#include <QCoreApplication>
 
 ServerConfigJsonParser::ServerConfigJsonParser()
 {
@@ -40,7 +41,14 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                                                boost::asio::io_service &io_service_)
 {
     std::ifstream i(filename.toStdString());
-    if (!i.is_open()) return false;
+    std::cout << "Trying to load the server configuration file at: " << filename.toStdString() << "\r\n";
+    if (!i.is_open()){
+        std::cout << "Could not find server_config.json at: " << filename.toStdString() << "\r\n";
+        std::cout << "Exiting...\r\n";
+        QCoreApplication::exit();
+        return false;
+    }
+    std::cout << "Server config file found. Begin parsing...\r\n";
 
     server_config_map.clear();
 
@@ -48,9 +56,12 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
     i >> j;
 
     auto http_settings_ = j["http"];
+    if (http_settings_.is_null()) {
+        std::cout << "ERROR: Server config parsing: \"http\" section not found\r\n";
+        return false;
+    }
 
     for (auto http_setting : http_settings_){
-    //for (size_t i = 0; i < http_settings.size(); i++){
         auto vhost_hostnames = http_setting["virtual_host"]["server_name"];
 
         for (auto listen__ : http_setting["virtual_host"]["listen"]){
