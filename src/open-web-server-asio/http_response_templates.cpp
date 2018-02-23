@@ -73,11 +73,6 @@ const QString HTTP_Response_Templates::_206_PARTIAL_CONTENT_RESPONSE_HEADER = ("
                                                                                 "Content-Range: bytes %2-%3/%4\r\n"
                                                                                 "\r\n");
 
-const QString HTTP_Response_Templates::_404_ = ("HTTP/1.1 404 Not Found\r\n"
-                                                    "Content-Type: %0; charset=utf-8\r\n"
-                                                    "Content-Length: %1\r\n"
-                                                    "\r\n");
-
 const QString HTTP_Response_Templates::_DIRECTORY_LISTING_ = ("<html><head><title>"
                                                               "Open Web Server</title>"
                                                               "</head><body><h1>"
@@ -85,9 +80,26 @@ const QString HTTP_Response_Templates::_DIRECTORY_LISTING_ = ("<html><head><titl
                                                               "</h1>"
                                                               "%1"
                                                               "</body></html>");
-const QString HTTP_Response_Templates::_404_NOT_FOUND_ = ("<html><head><title>404 Not Found</title></head>"
+
+const QString HTTP_Response_Templates::_404_NOT_FOUND_HEADER_ = ("HTTP/1.1 404 Not Found\r\n"
+                                                    "Content-Type: text/html; charset=utf-8\r\n"
+                                                    "Content-Length: %0\r\n"
+                                                    "\r\n");
+
+const QString HTTP_Response_Templates::_404_NOT_FOUND_BODY_ = ("<html><head><title>404 Not Found</title></head>"
                                                          "<body bgcolor=""white"">"
                                                          "<center><h1>404 Not Found</h1></center>"
+                                                         "<hr><center>Open Web Server/1.0-alpha</center>"
+                                                         "</body></html>\r\n");
+
+const QString HTTP_Response_Templates::_400_BAD_REQUEST_HEADER_ = ("HTTP/1.1 400 Bad Request\r\n"
+                                                    "Content-Type: text/html; charset=utf-8\r\n"
+                                                    "Content-Length: %0\r\n"
+                                                    "\r\n");
+
+const QString HTTP_Response_Templates::_400_BAD_REQUEST_BODY_ = ("<html><head><title>400 Bad Request</title></head>"
+                                                         "<body bgcolor=""white"">"
+                                                         "<center><h1>400 Bad Request</h1></center>"
                                                          "<hr><center>Open Web Server/1.0-alpha</center>"
                                                          "</body></html>\r\n");
 

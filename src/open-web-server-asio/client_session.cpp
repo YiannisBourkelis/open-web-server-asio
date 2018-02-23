@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <time.h>
 #include <QFileInfo>
+#include <QDir>
 
 const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
@@ -98,18 +99,31 @@ void ClientSession::process_client_request()
         QFile file_io;
         if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
             //TODO: den vrethike to hostname pou zitithike
+            send_404_not_found_response();
             return;
         }
 
         //elegxw ean to path pou zitithike den einai malicious
         if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)){
-            //TODO: malicious_path
+            send_400_bad_request_response();
             return;
         }
 
         if (try_get_request_uri_resource(file_io) == false){
+            //the requested uri was not found.
+            if (client_request_.response.server_config_map_it->second.allow_directory_listing == false){
+                //if directory listing is not allowed (default) then send a 404 response
+                send_404_not_found_response();
+            } else {
+                //if directory listing is allowed then send the directory listing
+                if (try_send_directory_listing() == false){
+                    //if the directory requested does not exist
+                    //return 404
+                    send_404_not_found_response();
+                }
+            }
+
             return;
-            //TODO: den yparxei to file pou zitithike
         }
 
         //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
@@ -163,6 +177,10 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
             //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
             rocket::cache.file_system_watcher->addPath(client_request_.response.absolute_hostname_and_requested_path);
             return true;
+        } else {
+            //cache does not have available space for the file to fit
+            //so I cleanup the cache. Maybe in the next request the file will fit inside the cache
+            rocket::cache.remove_older_items();
         }
     }
     return false; //to arxeio den epitrepetai na mpei stin cache
@@ -285,6 +303,91 @@ bool ClientSession::is_malicious_path(QString &path)
     //https://cwe.mitre.org/data/definitions/23.html
 
     return path.contains("..");
+}
+
+//TODO: should not use wstring. Should support utf8 filenames
+bool ClientSession::try_send_directory_listing(){
+    QDir directory;
+    QFileInfoList list;
+    std::wostringstream os;
+
+    QString directory_ = client_request_.response.absolute_hostname_and_requested_path;
+    if (directory.setCurrent(directory_) == false) return false;
+
+    //directory
+    directory.setFilter(QDir::NoDot | QDir::AllEntries);
+    directory.setSorting(QDir::DirsFirst);
+    list = directory.entryInfoList();
+    std::wstring url_encoded;
+    for (auto file:list){
+        QString slash("/");
+        if(file.isDir()){
+            url_encoded = file.fileName().replace(" ", "%20").toStdWString() + slash.toStdWString();
+            //einai directory
+            os << "<br /><a href=""" << url_encoded << """>"
+             << QString("<DIR> ").toHtmlEscaped().toStdWString()
+            << file.fileName().toHtmlEscaped().toStdWString() << "</a>";
+        }else {
+            url_encoded = file.fileName().replace(" ", "%20").toStdWString();
+            //einai arxeio
+            os << "<br /><a href=""" << (client_request_.uri.endsWith(slash) ?
+                                             client_request_.uri.toStdWString() :
+                                             client_request_.uri.toStdWString() +  slash.toStdWString())
+                                        + url_encoded << """>"
+            << file.fileName().toHtmlEscaped().toStdWString() << "</a>";
+        }
+    }//for loop
+
+    std::wstring response_body = HTTP_Response_Templates::_DIRECTORY_LISTING_.arg(client_request_.response.absolute_hostname_and_requested_path,
+                                                                     QString::fromStdWString(os.str())).toStdWString();
+
+    //to length tou body se QString
+    std::stringstream ssize_;
+    ssize_ << response_body.size();
+    std::string sService = ssize_.str();
+    QString length_(QString::fromStdString(sService));
+
+    QString mime_type("text/html");
+
+    //topothetw ta header values sto response
+    std::string resp_header_string = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(mime_type, length_).toStdString();
+
+    //prosthetw sto header to body
+
+    std::vector<char> resp_vector(std::make_move_iterator(resp_header_string.begin()), std::make_move_iterator(resp_header_string.end()));
+    resp_vector.insert(resp_vector.end(), std::make_move_iterator(response_body.begin()), std::make_move_iterator(response_body.end()));
+
+    client_request_.response.current_state = ClientResponse::state::single_send;
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(resp_vector.data(), resp_vector.size()),
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
+
+    return true;
+}
+
+void ClientSession::send_404_not_found_response(){
+    client_request_.response.header = QString(HTTP_Response_Templates::_404_NOT_FOUND_HEADER_.arg(
+                       QString::number(HTTP_Response_Templates::_404_NOT_FOUND_BODY_.size())) %
+                       HTTP_Response_Templates::_404_NOT_FOUND_BODY_).toStdString();
+
+    client_request_.response.current_state = ClientResponse::state::single_send;
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
+}
+
+void ClientSession::send_400_bad_request_response(){
+    client_request_.response.header = QString(HTTP_Response_Templates::_400_BAD_REQUEST_HEADER_.arg(
+                       QString::number(HTTP_Response_Templates::_400_BAD_REQUEST_BODY_.size())) %
+                       HTTP_Response_Templates::_400_BAD_REQUEST_BODY_).toStdString();
+
+    client_request_.response.current_state = ClientResponse::state::single_send;
+    boost::asio::async_write(socket_,
+                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                             boost::bind(&ClientSession::handle_write, this,
+                             boost::asio::placeholders::error));
 }
 
 //

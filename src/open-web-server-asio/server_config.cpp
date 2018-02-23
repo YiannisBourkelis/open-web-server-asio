@@ -75,7 +75,7 @@ bool ServerConfig::is_valid_requested_hostname(ClientRequest &client_request)
         }
     }
 
-    //den vrethike, opote epistrefw keno string
+    //den vrethike
     return false;
 }
 

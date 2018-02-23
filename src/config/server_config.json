@@ -14,7 +14,7 @@
         ],
 
         "document_root" : "/Users/yiannis/www/localhost/public_html",
-        "directory_listing" : false
+        "directory_listing" : true
       }
     },
 
@@ -44,7 +44,7 @@
 
     "send_file_chunk_size" : "32768",
 
-    "indexes" : ["72b.htm","cristian-lozan-371388.jpg","index.html","index.htm","default.html","default.htm"]
+    "indexes" : ["72b.htm","index.html","index.htm","default.html","default.htm"]
   }
 
 

@@ -50,6 +50,9 @@ private:
     static bool is_malicious_path(QString &path);
     bool add_to_cache_if_fits(QFile &file_io);
     void send_file_from_cache();
+    void send_404_not_found_response();
+    bool try_send_directory_listing();
+    void send_400_bad_request_response();
 };
 
 #endif // CLIENT_SESSION_H

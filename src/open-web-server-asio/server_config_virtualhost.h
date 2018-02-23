@@ -34,6 +34,7 @@ public:
     std::vector<QString> ServerName; // p.x. www.localhost
     std::vector<QString> directoryIndexes;
     QString directoryIndex;  // p.x. index.php index.html index.htm
+    bool allow_directory_listing;
 };
 
 #endif // SERVER_CONFIG_VIRTUALHOST_H

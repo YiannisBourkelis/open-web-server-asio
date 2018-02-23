@@ -46,8 +46,10 @@ public:
 
     static const QString _206_PARTIAL_CONTENT_RESPONSE_HEADER;
     static const QString _DIRECTORY_LISTING_;
-    static const QString _404_NOT_FOUND_;
-    static const QString _404_;
+    static const QString _404_NOT_FOUND_HEADER_;
+    static const QString _404_NOT_FOUND_BODY_;
+    static const QString _400_BAD_REQUEST_HEADER_;
+    static const QString _400_BAD_REQUEST_BODY_;
 
     //static methods
     static std::vector<char> merge(const QString &header, const QString &body);

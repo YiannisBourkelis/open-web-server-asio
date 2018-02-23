@@ -105,26 +105,29 @@ void Cache::remove_older_items()
     for (std::unordered_map<CacheKey, CacheContent>::iterator item_it = cached_items.begin(); item_it != cached_items.end(); ++item_it){
         items_to_remove.push_back(CacheRemove(item_it,
                                               item_it->second.last_access_time,
-                                              item_it->second.data.size()));
+                                              item_it->second.data.size(),
+                                              item_it->first.real_file_path));
 
     }
 
     //sort the vector based on the last_access_time field.
     //older items are are at the beginning of the vector
-    std::sort(items_to_remove.begin(), items_to_remove.begin()+4);
+    std::sort(items_to_remove.begin(), items_to_remove.end());
 
     //remove the older items from the cache until the required
     //bytes are cleaned. The bytes to remove are calculated based
     //on the cache_clenup_percentage.
     //e.g. if the cache_max_size = 419430400 bytes (400MB) and the cache_clenup_percentage is 0.20 (20%)
-    //then we need to remove at least bytes_to_remove = 419430400 * 0.20 = 83886080 (80 MB)
-    long long int bytes_to_remove = cache_max_size * cache_clenup_percentage;
-    long long int bytes_removed = 0;
+    //then we need to remove 419430400 * 0.20 = 83886080 (80 MB)
+    //so, the required_cache_size will be cache_current_size - 83886080 = around 320MB
+    long long int required_cache_size = cache_current_size - (cache_max_size * cache_clenup_percentage);
 
+    //begin removing the older items. Older is first.
     for (auto & item : items_to_remove){
-        bytes_removed += item.size;
+        cache_current_size -= item.size;
         cached_items.erase(item.cache_iterator);
-        if (bytes_removed >= bytes_to_remove) break; //ok we have made some space in the cache. we are done!
+        //if the items removed free the required space from the cache then exit the loop
+        if (cache_current_size <= required_cache_size) break; //ok we have made some space in the cache. we are done!
     }
 }
 

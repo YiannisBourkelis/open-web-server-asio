@@ -80,6 +80,7 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                 QString vhost_name = QString::fromStdString(vhost_hostnames.at(vhost_hostnames_idx).get<std::string>());
                 vhost.ServerName.push_back(vhost_name);
                 vhost.DocumentRoot = QString::fromStdString(http_setting["virtual_host"]["document_root"].get<std::string>());
+                vhost.allow_directory_listing = http_setting["virtual_host"]["directory_listing"].get<bool>();
 
                 //directory indexes
                 for (auto idx_itm : j["server"]["indexes"]){
