@@ -3,5 +3,5 @@
 QtEventLoopInit::QtEventLoopInit()
 {
     QEvent event();
-    QApplication::sendEvent(, &event);
+    //QApplication::sendEvent(, &event);
 }

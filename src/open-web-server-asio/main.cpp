@@ -11,12 +11,9 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    //QCoreApplication::sendPostedEvents();
-
-    //QFileSystemWatcher q(&a);
 
     rocket rocket_;
-    rocket_.takeoff();
+    rocket_.takeoff(&a);
 
     return a.exec();
 }

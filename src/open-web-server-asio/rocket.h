@@ -18,7 +18,7 @@ public:
 
     static boost::asio::io_service io_service;
 
-    void takeoff();
+    void takeoff(QCoreApplication *qcore_aplication);
     std::unordered_map<short, AsioServer*> servers_;
     static Cache cache;
 

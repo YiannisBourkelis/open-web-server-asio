@@ -20,7 +20,7 @@ rocket::rocket()
      gmt_date_time_last_ = std::chrono::high_resolution_clock::now();
 }
 
-void rocket::takeoff()
+void rocket::takeoff(QCoreApplication *qcore_aplication)
 {
     //load the server config file.
     //This file contains all the server settings regarding
@@ -35,7 +35,7 @@ void rocket::takeoff()
     ServerConfig::io_service_ = &rocket::io_service;
     ServerConfig::parse_config_file(ServerConfig::config_file_path);
 
-    rocket::cache.initialize();
+    rocket::cache.initialize(qcore_aplication);
 
     rocket::io_service.run();
 }

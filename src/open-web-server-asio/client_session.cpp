@@ -159,7 +159,7 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
                         std::make_pair(CacheKey(client_request_.hostname_and_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
 
             //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
-            rocket::cache.file_system_watcher.addPath(client_request_.response.absolute_hostname_and_requested_path);
+            rocket::cache.file_system_watcher->addPath(client_request_.response.absolute_hostname_and_requested_path);
             return true;
         }
     }

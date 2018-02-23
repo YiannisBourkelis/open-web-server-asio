@@ -63,7 +63,7 @@ void Cache::slot_fileChanged(const QString &path)
         ServerConfig::parse_config_file(path);
     }else{
         //allagi se file pou yparxei stin cache
-        file_system_watcher.removePath(path);
+        file_system_watcher->removePath(path);
         for (auto it = cached_items.begin(); it != cached_items.end(); it++){
             if (it->first.real_file_path == path){
                 cached_items.erase(it);
@@ -73,13 +73,14 @@ void Cache::slot_fileChanged(const QString &path)
     }
 }
 
-void Cache::initialize(){
-    init_file_monitor();
+void Cache::initialize(QCoreApplication *qcore_application){
+    init_file_monitor(qcore_application);
     init_cache_monitor();
 }
 
-void Cache::init_file_monitor(){
-    this->connect(&file_system_watcher,
+void Cache::init_file_monitor(QCoreApplication *qcore_application){
+    file_system_watcher = new QFileSystemWatcher(qcore_application);
+    this->connect(file_system_watcher,
                      SIGNAL(fileChanged(QString)),
                      this,
                      SLOT(slot_fileChanged(QString)));
@@ -92,7 +93,7 @@ void Cache::init_file_monitor(){
 */
 
     //TODO: na energopoiisw to filesystemwatcher gia na lamvanw tis allages sto config file
-    file_system_watcher.addPath(ServerConfig::config_file_path);
+    file_system_watcher->addPath(ServerConfig::config_file_path);
 }
 
 void Cache::remove_older_items()
