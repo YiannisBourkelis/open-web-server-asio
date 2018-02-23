@@ -1,5 +1,8 @@
 #include <QCoreApplication>
 #include "rocket.h"
+#include "qt_event_loop_init.h"
+#include <QFileSystemWatcher>
+
 
 //run as windows service
 //https://nssm.cc
@@ -8,7 +11,9 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    QCoreApplication::processEvents();
+    //QCoreApplication::sendPostedEvents();
+
+    //QFileSystemWatcher q(&a);
 
     rocket rocket_;
     rocket_.takeoff();

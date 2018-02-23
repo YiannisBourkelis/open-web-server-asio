@@ -30,7 +30,8 @@ SOURCES += main.cpp \
     cache.cpp \
     cache_key.cpp \
     cache_content.cpp \
-    cache_remove.cpp
+    cache_remove.cpp \
+    qt_event_loop_init.cpp
 
 INCLUDEPATH += "C:/Downloads/boost_1_66_0/"
 LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
@@ -58,5 +59,6 @@ HEADERS += \
     cache.h \
     cache_key.h \
     cache_content.h \
-    cache_remove.h
+    cache_remove.h \
+    qt_event_loop_init.h
 
