@@ -6,6 +6,7 @@
 #include <QStringBuilder>
 #include <QDateTime>
 #include <time.h>
+#include <QFileInfo>
 
 const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
@@ -144,8 +145,9 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
             rocket::cache.cache_current_size = cache_size_with_new_file;
             std::string mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name().toStdString();
 
+            QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
-            std::string modified_date_ = (file_io.fileTime(QFileDevice::FileModificationTime).toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT").toStdString(); //TODO: formating a QDateTime is very slow.
+            std::string modified_date_ = (qfile_info.lastModified().toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT").toStdString(); //TODO: formating a QDateTime is very slow.
             CacheContent cache_content(response_body_vect,
                                        mime_,
                                        modified_date_,

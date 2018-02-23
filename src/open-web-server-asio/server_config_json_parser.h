@@ -29,7 +29,7 @@ class ServerConfigJsonParser : public ServerConfigParserBase
 {
 public:
     ServerConfigJsonParser();
-
+    virtual ~ServerConfigJsonParser();
 
     virtual bool parse_config_file(const QString &filename,
                                    std::unordered_map<QString, ServerConfigVirtualHost> &server_config_map,

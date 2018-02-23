@@ -1,4 +1,5 @@
 #include "rocket.h"
+#include "server_config_parser_base.h"
 #include "server_config_json_parser.h"
 #include "server_config.h"
 #include <ctime>

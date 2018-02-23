@@ -30,12 +30,10 @@ SOURCES += main.cpp \
     cache.cpp \
     cache_key.cpp \
     cache_content.cpp \
-    cache_remove.cpp \
-    qt_event_loop_init.cpp
+    cache_remove.cpp
 
-INCLUDEPATH += "C:/Downloads/boost_1_66_0/"
-LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
-#LIBS += -LC:\Downloads\boost_1_66_0\stage\lib -llibboost_date_time
+windows:INCLUDEPATH += "C:/Downloads/boost_1_66_0/"
+windows:LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
 mac:LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/darwin-gnu-4.2.1/release/threadapi-pthread/threading-multi -lboost_system
@@ -59,6 +57,5 @@ HEADERS += \
     cache.h \
     cache_key.h \
     cache_content.h \
-    cache_remove.h \
-    qt_event_loop_init.h
+    cache_remove.h
 

@@ -29,6 +29,11 @@ ServerConfigJsonParser::ServerConfigJsonParser()
 
 }
 
+ServerConfigJsonParser::~ServerConfigJsonParser()
+{
+
+}
+
 bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                                                std::unordered_map<QString, ServerConfigVirtualHost> &server_config_map,
                                                std::unordered_map<short, AsioServer*> &server_open_ports,
@@ -53,9 +58,8 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
 
                 int port_ = listen__["port"].get<short>();
                 if (server_open_ports.find(port_) == server_open_ports.end()){
-                    //server_open_ports.emplace(std::make_pair(port_, std::move(new AsioServer(io_service_, port_))));
+                    /******* HERE A NEW SERVER IS CREATED AND IS LISTENING FOR INCOMMING CONNECTIONS ****/
                     server_open_ports.insert(std::make_pair(port_, new AsioServer(io_service_, port_)));
-                    //AsioServer *a = new AsioServer(*io_service_, port_);
                 }
 
                 QString port__ = QString::number(port_);
