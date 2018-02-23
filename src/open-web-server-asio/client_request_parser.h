@@ -2,7 +2,7 @@
 #define CLIENT_REQUEST_PARSER_H
 
 #include <QByteArray>
-#include <client_request.h>
+#include "client_request.h"
 
 class ClientRequestParser
 {

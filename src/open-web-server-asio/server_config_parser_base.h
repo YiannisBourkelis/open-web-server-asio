@@ -25,7 +25,7 @@
 #include "qstring_hash_specialization.h"
 #include <unordered_map>
 #include "server_config_virtualhost.h"
-#include <server_config_virtualhost_portinfo.h>
+#include "server_config_virtualhost_portinfo.h"
 #include <boost/asio.hpp>
 #include "asio_server.h"
 

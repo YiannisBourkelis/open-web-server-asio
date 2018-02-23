@@ -62,7 +62,11 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
 
 const std::string rocket::get_next_etag()
 {
+#ifdef WIN32
+    if(etag_ == _UI64_MAX){
+#else
     if(etag_ == ULONG_LONG_MAX){
+#endif
         etag_ = 0;
     }
     return std::to_string(++etag_);

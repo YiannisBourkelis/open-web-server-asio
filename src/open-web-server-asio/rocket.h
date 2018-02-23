@@ -3,7 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <unordered_map>
-#include <asio_server.h>
+#include "asio_server.h"
 #include "cache.h"
 #include <string>
 #include <chrono>
@@ -29,7 +29,11 @@ private:
     static std::chrono::time_point<std::chrono::high_resolution_clock> gmt_date_time_last_;
     static std::string gmt_date_time_;
 
+#ifdef WIN32
+    static unsigned __int64 etag_;
+#else
     static unsigned long long etag_;
+#endif
 };
 
 #endif // ROCKET_H
