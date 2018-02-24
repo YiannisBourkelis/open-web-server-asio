@@ -3,8 +3,6 @@
 #include "server_config_json_parser.h"
 #include "server_config.h"
 #include <ctime>
-#include <iomanip> //gia put_time
-#include <sstream>
 
 //public statics
 boost::asio::io_service rocket::io_service;
@@ -51,6 +49,23 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
     {
         //get and format the date and time only if 1sec from the last time has passed.
         time_now = std::time(nullptr);
+        tm * tm_ = gmtime(&time_now);
+        char char_time[29];
+        strftime(char_time, 29, "%a, %d %b %Y %T GMT", tm_);
+        std::string string_time(char_time,29);
+        gmt_date_time_ = string_time;
+        gmt_date_time_last_ = std::chrono::high_resolution_clock::now();
+    }
+    return gmt_date_time_;
+}
+/*
+const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
+{
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - gmt_date_time_last_).count() > 1000)
+    {
+        //get and format the date and time only if 1sec from the last time has passed.
+        time_now = std::time(nullptr);
         std::stringstream ss_time;
         ss_time << std::put_time(std::gmtime(&time_now), "%a, %d %b %Y %T GMT"); //e.g.: Sat, 20 Jan 2018 09:34:52 GMT
         std::string string_time(ss_time.str());
@@ -60,6 +75,7 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
     }
     return gmt_date_time_;
 }
+*/
 
 const std::string rocket::get_next_etag()
 {

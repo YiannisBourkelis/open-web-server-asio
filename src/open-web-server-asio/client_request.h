@@ -15,6 +15,10 @@ public:
     QString uri;
     QString hostname;
 
+    bool is_range_request;
+    unsigned long long int range_from_byte;
+    unsigned long long int range_until_byte;
+
     ClientResponse response;
     std::unordered_map<CacheKey, CacheContent>::iterator cache_iterator;
 

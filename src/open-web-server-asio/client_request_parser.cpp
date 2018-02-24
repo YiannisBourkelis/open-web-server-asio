@@ -1,5 +1,6 @@
 #include "client_request_parser.h"
 #include <QStringBuilder>
+#include <iostream>
 
 ClientRequestParser::ClientRequestParser()
 {
@@ -7,6 +8,7 @@ ClientRequestParser::ClientRequestParser()
 }
 
 //static
+//TODO: implement the parser using a state machine
 int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
 {
     //na koitaksw na to ylopoiisw me state machine.
@@ -68,31 +70,24 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request)
 
 
     //******************************************
-    /*
+
     //lamvanw tyxwn byte range
-     size_t range_pos = request.find("\nRange: bytes=", get_end_idx + 2);
-     if (range_pos != std::string::npos){
+     int range_pos = client_request.raw_request.indexOf("\nRange: bytes=",  http_method_line_end);
+     client_request.is_range_request = (range_pos != -1);
+     if (client_request.is_range_request){
          //vrethike range
-         size_t range_dash = request.find("-", range_pos + 14);
-         if (range_dash != std::string::npos){//vrethike i pavla px 0-1
-            size_t range_end = request.find("\r", range_dash + 2);
-            if (range_end != std::string::npos){
-             std::string from(request.begin() + range_pos + 14,
-                              request.begin() + range_dash);
-
-             std::string until(request.begin() + range_dash + 1,
-                               request.begin() + range_end);
-             range_from_byte = std::stoull(from);
-             range_until_byte = std::stoull(until);
-             //char *end;
-             //range_until_byte = std::strtoull(until.c_str(), &end, 10);
-             has_range_header = true;
-
-             //std::cout << "ok";
+         int range_dash = client_request.raw_request.indexOf("-", range_pos + 14);
+         if (range_dash != -1){//vrethike i pavla px 0-1
+            int range_end = client_request.raw_request.indexOf("\r", range_dash + 2);
+            if (range_end != -1){
+             QString from =  client_request.raw_request.mid(range_pos + 14,range_dash-(range_pos + 14));
+             QString until = client_request.raw_request.mid(range_dash + 1, range_end - (range_dash + 1));
+             client_request.range_from_byte = from.toULongLong();
+             client_request.range_until_byte = until.toULongLong();
             }
          }
      }
-     */
+
 
 
     //******************************************

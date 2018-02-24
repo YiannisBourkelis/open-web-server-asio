@@ -188,29 +188,53 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
 
 
 void ClientSession::send_file_from_cache(){
-    //apostelw prwta ta headers
-    client_request_.response.header =
-            HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ +
-            rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time) + //get the current datetime as a string and store the current datetime as a time_t value in the last_access_time field.
-            HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_ +
-            client_request_.cache_iterator->second.mime_type +
-            HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_ +
-            std::to_string(client_request_.cache_iterator->second.data.size()) +
-            HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_ +
-            client_request_.cache_iterator->second.last_modified +
-            HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ +
-            client_request_.cache_iterator->second.etag +
-            HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE;
 
-    std::vector<boost::asio::const_buffer> buffers;
-    buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
-    buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+    if (client_request_.is_range_request == false){
+        //apostelw prwta ta headers
+        client_request_.response.header =
+                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ +
+                rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time) + //get the current datetime as a string and store the current datetime as a time_t value in the last_access_time field.
+                HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_ +
+                client_request_.cache_iterator->second.mime_type +
+                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_ +
+                std::to_string(client_request_.cache_iterator->second.data.size()) +
+                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_ +
+                client_request_.cache_iterator->second.last_modified +
+                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ +
+                client_request_.cache_iterator->second.etag +
+                HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE;
 
-    client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             buffers,
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+        std::vector<boost::asio::const_buffer> buffers;
+        buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
+        buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+
+        client_request_.response.current_state = ClientResponse::state::single_send;
+        boost::asio::async_write(socket_,
+                                 buffers,
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    } else {
+        unsigned long long int range_size = (client_request_.range_until_byte - client_request_.range_from_byte) + 1;
+        //apostelw prwta ta headers
+        QString response_header = HTTP_Response_Templates::_206_PARTIAL_CONTENT_RESPONSE_HEADER.arg(
+                    QString::fromStdString(client_request_.cache_iterator->second.mime_type),
+                    QString::number(range_size),
+                    QString::number(client_request_.range_from_byte),
+                    QString::number(client_request_.range_until_byte),
+                    QString::number(client_request_.cache_iterator->second.data.size())
+                    );
+        client_request_.response.header = response_header.toStdString();
+
+        std::vector<boost::asio::const_buffer> buffers;
+        buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
+        buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
+
+        client_request_.response.current_state = ClientResponse::state::single_send;
+        boost::asio::async_write(socket_,
+                                 buffers,
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }
 }
 
 //TOTO: na vrw taxytero tropo wste na mi xreiazetai metatropi apo to qstring _200_OK sto str::string response_header_str
