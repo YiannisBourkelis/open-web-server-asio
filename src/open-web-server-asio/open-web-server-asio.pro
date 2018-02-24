@@ -38,6 +38,8 @@ windows:LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
 mac:LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/darwin-gnu-4.2.1/release/threadapi-pthread/threading-multi -lboost_system
 
+linux:INCLUDEPATH += "/home/pi/boost_1_66/boost_1_66_0" #for my raspberri pi
+linux:LIBS += -L/home/pi/boost_1_66/boost_1_66_0/stage/lib/ #for my raspberri pi
 linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
 
 HEADERS += \
