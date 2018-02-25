@@ -32,12 +32,30 @@ SOURCES += main.cpp \
     cache_content.cpp \
     cache_remove.cpp
 
+# boost libraries build guide
+# - download boost
+# - depending on yout selected Qt compiler, open the visual studio command prompt and navigate into the boost directory
+# - For static linking on windows x86, msvc2015 type:
+# - b2.exe --toolset=msvc-15.0 address-model=32 --build-type=complete
+# - For faster build times you can also choose to build only boost_system.
+# - Update the related INCLUDEPATH and LIBS variables bellow
 windows:INCLUDEPATH += "C:/Downloads/boost_1_66_0/"
 windows:LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
 mac:LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/darwin-gnu-4.2.1/release/threadapi-pthread/threading-multi -lboost_system
 
+# readelf -d open-web-server-asio to view the executable dependencies
+# if boost libraries are not installed you should install them
+# method 1: sudo apt-get install libboost-all-dev
+# #############
+# method 2:
+# - Downloads boost
+# - build boost by typing:
+# ./bootstrap.sh
+# ./b2 install
+# - For faster build times you can also choose to build only boost_system.
+# - Update the related INCLUDEPATH and LIBS variables bellow
 linux:INCLUDEPATH += "/home/pi/boost_1_66/boost_1_66_0" #for my raspberri pi
 linux:LIBS += -L/home/pi/boost_1_66/boost_1_66_0/stage/lib/ #for my raspberri pi
 linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system

@@ -41,29 +41,30 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
     if (!error)
     {
 
-        /*
+
         //benchmarking
         std::string respstr ("HTTP/1.1 200 OK\r\n"
                                    "Content-Type: text/html; charset=utf-8\r\n"
                                    "Content-Length: 5"
                                    "\r\n\r\n"
                                    "Hello");
-                                   */
+
 
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
         if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
             //ok, we have a complete client request. now lets process this request
             //and generate a response to send it to the client
-            process_client_request();
+            //process_client_request();
 
-            /*
+
             //benchmarking
+            client_request_.response.current_state = ClientResponse::state::single_send;
             boost::asio::async_write(socket_,
                                      boost::asio::buffer(respstr.data(), respstr.size()),
                                      boost::bind(&ClientSession::handle_write, this,
                                      boost::asio::placeholders::error));
-                                     */
+
 
         } else {
             socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
