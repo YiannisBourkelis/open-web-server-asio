@@ -25,14 +25,13 @@ enum http_parser_state {
     //GET /index.html HTTP/1.1
     start_state,
     state_GET,
-    state_SPACE,
     state_GET_URI_CONTENT,
     state_GET_URI_CONTENT_END,
 
     state_HTTP_VERSION,
 
-    state_FIRST_CR,
-    state_FIRST_LF,
+    state_CRLF,
+    state_CRLF_x2,
 
     //Host: localhost:12343
     state_HOST,
@@ -41,6 +40,8 @@ enum http_parser_state {
 
     state_CONNECTION,
     state_CONNECTION_KEEP_ALIVE_OR_CLOSE,
+
+    state_UNKNOWN_HEADER,
 
 
     //Range: bytes=0-1023

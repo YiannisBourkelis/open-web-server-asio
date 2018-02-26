@@ -22,6 +22,11 @@ ClientRequestParser::ClientRequestParser()
 //  but for some reason on my mac the .at method has slighter better spead (avg.460.000 req/sec vs 465.000 req/sec
 //
 //- Should benchmark an implementation with switch vs if statements
+//
+// ---- Things I tried and observed:
+//- I tried std::make_move_iterator(data.begin()... to move the data to the object member string variables,
+//  but I didn't measure any possitive difference in performance. Should try it again when there are more
+//  headers to process and copy.
 int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request){
 
     http_parser_state current_state = start_state;
@@ -32,7 +37,7 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
         {
             if(data[index_char] == 71 && // G
                     ((index_char + 4) < bytes_transferred) &&
-                    data[index_char + 1] == 69 && // E
+                    data[index_char + 1] == 69 && // E 69
                     data[index_char + 2] == 84 && // T
                     data[index_char + 3] == 32 // space
                     ) {
@@ -85,13 +90,7 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
             continue;
         }
 
-        if (current_state == state_FIRST_CR)
-        {
-            if (data[index_char] == 10) current_state = state_FIRST_LF; // \n
-            continue;
-        }
-
-        if (current_state == state_FIRST_LF)
+        if (current_state == state_CRLF)
         {
             //check for Host: header
             if (data[index_char] == 72 &&
@@ -105,9 +104,10 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
                 continue;
             }
 
-            if (data[index_char] == 67 ){ // C
-                std::cout << "hh";
-            }
+
+            //if (data[index_char] == 67 ){ // C
+            //    std::cout << "hh";
+            //}
 
             //check for Connection: keep-alive. Actually I only check for eep live
             if (data[index_char] == 67 && // C
@@ -127,6 +127,19 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
                 continue;
             }
 
+            //check if we are here because no known header that we are
+            //inderested for exist.
+            if (data[index_char] != '\r'){
+                current_state = state_UNKNOWN_HEADER;
+            } else if (data[index_char] == '\r' &&
+                       ((index_char + 1) < bytes_transferred) &&
+                       data[index_char + 1] == '\n'){
+               index_char += 1;
+               current_state = state_CRLF_x2;
+            } else {
+                std::cout << "parse error!";
+                //TODO: the request is malformed. I should return an error
+            }
             continue;
         }
 
@@ -161,12 +174,16 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
             continue;
         }
 
-        if (data[index_char] == 13) { // \r
-            current_state = state_FIRST_CR;
+
+        if (data[index_char] == '\r' &&
+                ((index_char + 2) < bytes_transferred) &&
+                data[index_char + 1] == '\n') {
+                index_char += 1;
+                current_state = state_CRLF;
             continue;
         }
 
-    }
+    }//for loop
 
 
     //enonw to hostname me to uri
@@ -250,14 +267,7 @@ int ClientRequestParser::parse2(std::vector<char> &data, size_t bytes_transferre
             continue;
         }
 
-        if (current_state == state_FIRST_CR)
-        {
-            //auto cc = client_request.raw_request.at(index_char);
-            if (data.at(index_char) == 10) current_state = state_FIRST_LF; // \n
-            continue;
-        }
-
-        if (current_state == state_FIRST_LF)
+        if (current_state == state_CRLF)
         {
             //check for Host: header
             if (data.at(index_char) == 72 &&
@@ -293,7 +303,21 @@ int ClientRequestParser::parse2(std::vector<char> &data, size_t bytes_transferre
                 continue;
             }
 
+            //check if we are here because no known header that we are
+            //inderested for exist.
+            if (data[index_char] != '\r'){
+                current_state = state_UNKNOWN_HEADER;
+            } else if (data[index_char] == '\r' &&
+                       ((index_char + 1) < bytes_transferred) &&
+                       data[index_char + 1] == '\n'){
+               index_char += 1;
+               current_state = state_CRLF_x2;
+            } else {
+                std::cout << "parse error!";
+                //TODO: the request is malformed. I should return an error
+            }
             continue;
+
         }
 
         if (current_state == state_HOST)
@@ -327,8 +351,11 @@ int ClientRequestParser::parse2(std::vector<char> &data, size_t bytes_transferre
             continue;
         }
 
-        if (data.at(index_char) == 13) { // \r
-            current_state = state_FIRST_CR;
+        if (data[index_char] == '\r' &&
+                ((index_char + 2) < bytes_transferred) &&
+                data[index_char + 1] == '\n') {
+                index_char += 1;
+                current_state = state_CRLF;
             continue;
         }
 
