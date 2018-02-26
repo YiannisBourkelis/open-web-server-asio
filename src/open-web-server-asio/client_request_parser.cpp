@@ -2,6 +2,7 @@
 #include <QStringBuilder>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/utility/string_view.hpp>
 
 using namespace enums;
 
@@ -10,120 +11,35 @@ ClientRequestParser::ClientRequestParser()
     data_.resize(REQUEST_BUFFER_SIZE);
 }
 
-/*
+
 int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
-    client_request.raw_request = QString(data);
+    //client_request.raw_request = QString(data);
+
+    std::string s1 = "yiannis";
+    boost::string_view sv(s1.data() + 2, 2);
+    std::string sref = sv.to_string();
+
+    std::vector<char> f {69,70,71};
+    boost::string_view sv_vector(f.data() + 1, 2);
+    std::string sref_vector = sv_vector.to_string();
+
+
+    client_request.hostname.clear();
+    client_request.uri.clear();
 
     http_parser_state current_state = start_state;
 
-    for (int index_char = 0; index_char < client_request.raw_request.size(); index_char++){
-        switch (current_state) {
-        case start_state:
-        {
-            if(client_request.raw_request[index_char] == "G" &&
-                    client_request.raw_request[index_char + 1] == "E" &&
-                    client_request.raw_request[index_char + 2] == "T"
-                    ) {
-                index_char += 2;
-                current_state = state_GET;//"G"
-            }
-            break;
-        }
-
-        case state_GET:
-        {
-            if(client_request.raw_request[index_char] != " ") {// not space
-               //start of GET/POST/HEAD URI
-                client_request.parser_content_begin_index = index_char;
-                current_state =state_GET_URI_CONTENT;
-                break;
-            }
-            break;
-        }
-
-        case state_GET_URI_CONTENT:
-        {
-            if(client_request.raw_request[index_char] == " ") {// space after get uri
-                client_request.uri_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);
-                client_request.uri = client_request.uri_ref.toString();
-                current_state = state_GET_URI_CONTENT_END;
-                break;
-            }
-            break;
-        }
-
-        case state_FIRST_CR:
-        {
-            //auto cc = client_request.raw_request.at(index_char);
-            if (client_request.raw_request[index_char] == "\n") current_state = state_FIRST_LF;
-            break;
-        }
-
-        case state_FIRST_LF:
-        {
-            if (client_request.raw_request[index_char] == "H" &&
-                    ((index_char + 6) < client_request.raw_request.size()) &&
-                    client_request.raw_request[index_char + 1] == "o" &&
-                    client_request.raw_request[index_char + 2] == "s" &&
-                    client_request.raw_request[index_char + 3] == "t" &&
-                    client_request.raw_request[index_char + 4] == ":") {
-                index_char += 5;
-                current_state = state_HOST;
-            }
-            break;
-        }
-
-        case state_HOST:
-        {
-            if (client_request.raw_request[index_char] != " "){
-                client_request.parser_content_begin_index = index_char;
-                current_state = state_HOST_CONTENT;
-            }
-            break;
-        }
-
-        case state_HOST_CONTENT:
-        {
-            if (client_request.raw_request[index_char] == "\r"){
-                client_request.host_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);;
-                client_request.hostname = client_request.host_ref.toString();
-                current_state = state_HOST_CONTENT_END;
-            }
-            break;
-        }
-
-        default:
-            //auto cc = client_request.raw_request[index_char];
-            if (client_request.raw_request[index_char] == "\r") current_state = state_FIRST_CR;break;
-
-        }//switch
-    }
-
-
-    //enonw to hostname me to uri
-    client_request.hostname_and_uri = client_request.hostname % client_request.uri;
-    client_request.is_range_request = false;
-
-    return 0;
-}
-*/
-
-int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
-    client_request.raw_request = QString(data);
-
-    http_parser_state current_state = start_state;
-
-    int raw_size = client_request.raw_request.size();
+    int raw_size = data.size(); //client_request.raw_request.size();
 
     for (int index_char = 0; index_char < raw_size; index_char++){
-        auto curr_char = client_request.raw_request.at(index_char);
+        //auto curr_char = client_request.raw_request.at(index_char);
 
         if (current_state == start_state)
         {
-            if(curr_char == "G" &&
-                    client_request.raw_request[index_char + 1] == "E" &&
-                    client_request.raw_request[index_char + 2] == "T" &&
-                    client_request.raw_request[index_char + 3] == " "
+            if(data.at(index_char) == 71 &&
+                    data.at(index_char + 1) == 69 &&
+                    data.at(index_char + 2) == 84 &&
+                    data.at(index_char + 3) == 32
                     ) {
                 index_char += 3;
                 current_state = state_GET;//"G"
@@ -133,7 +49,7 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
         if (current_state == state_GET)
         {
-            if(curr_char != " ") {// not space
+            if(data.at(index_char) != 32) {// not space
                //start of GET/POST/HEAD URI
                 client_request.parser_content_begin_index = index_char;
                 current_state =state_GET_URI_CONTENT;
@@ -144,9 +60,9 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
         if (current_state == state_GET_URI_CONTENT)
         {
-            if (curr_char == " ") {// space after get uri
-                client_request.uri_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);
-                client_request.uri = client_request.uri_ref.toString();
+            if (data.at(index_char) == 32) {// space after get uri
+                //client_request.uri_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);
+                client_request.uri.append(data.mid(client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index));
                 current_state = state_GET_URI_CONTENT_END;
                 continue;
             }
@@ -156,18 +72,18 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
         if (current_state == state_FIRST_CR)
         {
             //auto cc = client_request.raw_request.at(index_char);
-            if (curr_char == "\n") current_state = state_FIRST_LF;
+            if (data.at(index_char) == 13) current_state = state_FIRST_LF;
             continue;
         }
 
         if (current_state == state_FIRST_LF)
         {
-            if (curr_char == "H" &&
+            if (data.at(index_char) == 72 &&
                     ((index_char + 6) < client_request.raw_request.size()) &&
-                    client_request.raw_request[index_char + 1] == "o" &&
-                    client_request.raw_request[index_char + 2] == "s" &&
-                    client_request.raw_request[index_char + 3] == "t" &&
-                    client_request.raw_request[index_char + 4] == ":") {
+                    data.at(index_char + 1) == 111 &&
+                    data.at(index_char + 2) == 115 && //s
+                    data.at(index_char + 3) == 116 && //t
+                    data.at(index_char + 4) == 58) { //:
                 index_char += 5;
                 current_state = state_HOST;
             }
@@ -176,7 +92,7 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
         if (current_state == state_HOST)
         {
-            if (curr_char != " "){
+            if (data.at(index_char) != 32){
                 client_request.parser_content_begin_index = index_char;
                 current_state = state_HOST_CONTENT;
             }
@@ -185,14 +101,14 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
         if (current_state == state_HOST_CONTENT)
         {
-            if (curr_char == "\r"){
-                client_request.host_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);;
-                client_request.hostname = client_request.host_ref.toString();
+            if (data.at(index_char) == 10){
+                //client_request.host_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);;
+                client_request.hostname.append(data.mid(client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index));
             }
             continue;
         }
 
-        if (curr_char == "\r") {
+        if (data.at(index_char) == 10) {
             current_state = state_FIRST_CR;
             continue;
         }
@@ -307,7 +223,7 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequ
 {
     //usually a client http request is less than 1024 bytes, so it fits
     //inside the buffer in a single read. Because of this and for performanse reasons
-    //we should first check if it is a complete messege (ends with \r\n\r\n)
+    //we should first check if it is a complete message (ends with \r\n\r\n)
     //The check for previous_request_data_.size() is done for the case where the previous
     //request was incomplete, so in this case we should proccess the request in the else statement that follows
     int first_index_of_crlfcrlf = data_.indexOf(crlf_crlf);
