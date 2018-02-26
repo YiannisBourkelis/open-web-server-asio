@@ -2,7 +2,6 @@
 #include <QStringBuilder>
 #include <iostream>
 #include <boost/asio.hpp>
-#include <boost/utility/string_view.hpp>
 
 using namespace enums;
 
@@ -11,35 +10,20 @@ ClientRequestParser::ClientRequestParser()
     data_.resize(REQUEST_BUFFER_SIZE);
 }
 
-
-int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
-    //client_request.raw_request = QString(data);
-
-    std::string s1 = "yiannis";
-    boost::string_view sv(s1.data() + 2, 2);
-    std::string sref = sv.to_string();
-
-    std::vector<char> f {69,70,71};
-    boost::string_view sv_vector(f.data() + 1, 2);
-    std::string sref_vector = sv_vector.to_string();
-
-
-    client_request.hostname.clear();
-    client_request.uri.clear();
+int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request){
 
     http_parser_state current_state = start_state;
+    client_request.connection = http_connection::unknown;
 
-    int raw_size = data.size(); //client_request.raw_request.size();
-
-    for (int index_char = 0; index_char < raw_size; index_char++){
-        //auto curr_char = client_request.raw_request.at(index_char);
+    for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
 
         if (current_state == start_state)
         {
-            if(data.at(index_char) == 71 &&
-                    data.at(index_char + 1) == 69 &&
-                    data.at(index_char + 2) == 84 &&
-                    data.at(index_char + 3) == 32
+            if(data.at(index_char) == 71 && // G
+                    ((index_char + 4) < bytes_transferred) &&
+                    data.at(index_char + 1) == 69 && // E
+                    data.at(index_char + 2) == 84 && // T
+                    data.at(index_char + 3) == 32 // space
                     ) {
                 index_char += 3;
                 current_state = state_GET;//"G"
@@ -58,13 +42,35 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
             continue;
         }
 
-        if (current_state == state_GET_URI_CONTENT)
-        {
+        if (current_state == state_GET_URI_CONTENT) {
             if (data.at(index_char) == 32) {// space after get uri
                 //client_request.uri_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);
-                client_request.uri.append(data.mid(client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index));
+                client_request.uri = std::string(data.begin() + client_request.parser_content_begin_index,
+                                                 data.begin() + index_char);
                 current_state = state_GET_URI_CONTENT_END;
                 continue;
+            }
+            continue;
+        }
+
+        //GET / HTTP/1.1
+        if (current_state == state_GET_URI_CONTENT_END){
+            // characters after the space after the uri means we have the http version
+            if(data.at(index_char) == 72 && // H
+                    ((index_char + 8) < bytes_transferred) &&
+                    data.at(index_char + 1) == 84 && // T
+                    data.at(index_char + 2) == 84 && // T
+                    data.at(index_char + 3) == 80 && // P
+                    data.at(index_char + 4) == 47 // /
+                    ) {
+                //check verdion number
+                if (data.at(index_char + 5) == 49 && data.at(index_char + 7) == 49){
+                    client_request.http_protocol_ver = http_protocol_version::HTTP_1_1;
+                } else if (data.at(index_char + 5) == 49 && data.at(index_char + 7) == 48){
+                    client_request.http_protocol_ver = http_protocol_version::HTTP_1_0;
+                }
+                index_char += 7;
+                current_state = state_HTTP_VERSION;
             }
             continue;
         }
@@ -72,27 +78,52 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
         if (current_state == state_FIRST_CR)
         {
             //auto cc = client_request.raw_request.at(index_char);
-            if (data.at(index_char) == 13) current_state = state_FIRST_LF;
+            if (data.at(index_char) == 10) current_state = state_FIRST_LF; // \n
             continue;
         }
 
         if (current_state == state_FIRST_LF)
         {
+            //check for Host: header
             if (data.at(index_char) == 72 &&
-                    ((index_char + 6) < client_request.raw_request.size()) &&
+                    ((index_char + 6) < bytes_transferred) &&
                     data.at(index_char + 1) == 111 &&
                     data.at(index_char + 2) == 115 && //s
                     data.at(index_char + 3) == 116 && //t
                     data.at(index_char + 4) == 58) { //:
                 index_char += 5;
                 current_state = state_HOST;
+                continue;
             }
+
+            if (data.at(index_char) == 67 ){ // C
+                std::cout << "hh";
+            }
+
+            //check for Connection: keep-alive. Actually I only check for eep live
+            if (data.at(index_char) == 67 && // C
+                    ((index_char + 11) < bytes_transferred) &&
+                    data.at(index_char + 1) == 111 && // o
+                    data.at(index_char + 2) == 110 && // n
+                    data.at(index_char + 3) == 110 && // n
+                    data.at(index_char + 4) == 101 && //e
+                    data.at(index_char + 5) == 99 && // c
+                    data.at(index_char + 6) == 116 && // t
+                    data.at(index_char + 7) == 105 && // i
+                    data.at(index_char + 8) == 111 && // o
+                    data.at(index_char + 9) == 110 && // n
+                    data.at(index_char + 10) == 58 ) { // :
+                index_char += 10;
+                current_state = state_CONNECTION;
+                continue;
+            }
+
             continue;
         }
 
         if (current_state == state_HOST)
         {
-            if (data.at(index_char) != 32){
+            if (data.at(index_char) != 32){ // space
                 client_request.parser_content_begin_index = index_char;
                 current_state = state_HOST_CONTENT;
             }
@@ -101,14 +132,27 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
         if (current_state == state_HOST_CONTENT)
         {
-            if (data.at(index_char) == 10){
-                //client_request.host_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);;
-                client_request.hostname.append(data.mid(client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index));
+            if (data.at(index_char) == 10){ // \n
+                client_request.hostname = std::string(data.begin() + client_request.parser_content_begin_index,
+                                                      data.begin() + index_char - 1);
+                current_state = state_HOST_CONTENT_END;
+
             }
             continue;
         }
 
-        if (data.at(index_char) == 10) {
+        if (current_state == state_CONNECTION){
+            if (data.at(index_char) == 101) { // e. If it has an e it means it is keep-alive
+                client_request.connection = http_connection::keep_alive;
+                current_state = state_CONNECTION_KEEP_ALIVE_OR_CLOSE;
+            } else if (data.at(index_char) == 111) { // o. If it has o it means it is close
+                client_request.connection = http_connection::close;
+                current_state = state_CONNECTION_KEEP_ALIVE_OR_CLOSE;
+            }
+            continue;
+        }
+
+        if (data.at(index_char) == 13) { // \r
             current_state = state_FIRST_CR;
             continue;
         }
@@ -117,105 +161,19 @@ int ClientRequestParser::parse(QByteArray &data, ClientRequest &client_request){
 
 
     //enonw to hostname me to uri
-    client_request.hostname_and_uri = client_request.hostname % client_request.uri;
+    client_request.hostname_and_uri = client_request.hostname + client_request.uri;
     client_request.is_range_request = false;
 
-    return 0;
-}
-
-//static
-//TODO: implement the parser using a state machine
-int ClientRequestParser::parse2(QByteArray &data, ClientRequest &client_request)
-{
-    //na koitaksw na to ylopoiisw me state machine.
-    //isws to http://www.boost.org/doc/libs/1_66_0/libs/statechart/doc/index.html
-    //na voithaei stin ylopoiisi
-
-    //episis gia parsing na dw mipws einai kalo to boost.spirit
-
-    //metatrepw to client request se string gia na to analysw
-  client_request.raw_request = QString(data);
-
-
-    //******************************************
-    //lamvanw to directory pou zitithike
-    //GET dir /r/n
-    //int get_start = request.find("G");
-    int http_method_line_end = 0;
-    bool is_get_request = data.startsWith("G");
-    if (is_get_request){
-        int get_end = data.indexOf(" ", 4);
-        client_request.uri = client_request.raw_request.mid(4, get_end - 4);
-        http_method_line_end = get_end + 9;
-    }
-    //std::string url(request.begin() + 4, request.begin() + get_end);
-    //int http_method_line_end = get_end + 9;
-    //request_uri = std::move(QString::fromStdString(url).replace("%20", " "));
-
-    //request_uri = "/../../../";
-    //request_uri = "/../../../back_f2.png";
-    //request_uri = "././.";
-
-    //url = "" + url + "";
-    //******************************************
-
-    //******************************************
-    // lamvanw to hostname
-    int hostname_idx = client_request.raw_request.indexOf("\nHost: ", http_method_line_end + 1);
-    if (hostname_idx != -1){
-        //host name beginning found
-        int hostname_idx_end = client_request.raw_request.indexOf("\r", hostname_idx + 7);
-        if (hostname_idx_end != -1){
-            //host name end found
-            client_request.hostname = client_request.raw_request.mid(hostname_idx + 7, hostname_idx_end - (hostname_idx + 7));
-            //std::string hostname_str(request.begin() + hostname_idx + 6, request.begin() + hostname_idx_end);
+    //set the connection property to keep allive or close based on the request headers
+    if (client_request.connection == http_connection::unknown){
+        if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_1){
+            client_request.connection = http_connection::keep_alive;
+        }else if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
+                  client_request.http_protocol_ver == http_protocol_version::HTTP_0_9){
+            client_request.connection = http_connection::close;
         }
     }
-    //******************************************
 
-    //enonw to hostname me to uri
-    client_request.hostname_and_uri = client_request.hostname % client_request.uri;
-
-    //******************************************
-    //elegxos ean einai HTTP/1.0
-    //size_t http1_0 = request.find("HTTP/1.0", rv - 8);
-    //if (http1_0 != std::string::npos){
-    //    keep_alive = false;
-    //}
-    //******************************************
-
-
-    //******************************************
-
-    //lamvanw tyxwn byte range
-     int range_pos = client_request.raw_request.indexOf("\nRange: bytes=",  http_method_line_end);
-     client_request.is_range_request = (range_pos != -1);
-     if (client_request.is_range_request){
-         //vrethike range
-         int range_dash = client_request.raw_request.indexOf("-", range_pos + 14);
-         if (range_dash != -1){//vrethike i pavla px 0-1
-            int range_end = client_request.raw_request.indexOf("\r", range_dash + 2);
-            if (range_end != -1){
-             QString from =  client_request.raw_request.mid(range_pos + 14,range_dash-(range_pos + 14));
-             QString until = client_request.raw_request.mid(range_dash + 1, range_end - (range_dash + 1));
-             client_request.range_from_byte = from.toULongLong();
-             client_request.range_until_byte = until.toULongLong();
-            }
-         }
-     }
-
-
-
-    //******************************************
-
-     //******************************************
-     //elegxw yparksi connection: close
-     //keep_alive = (request.find("\nConnection: close", get_end_idx) == std::string::npos);
-
-     //******************************************
-    //is_dirty = false;
-
-    //request_path = "/usr/local/var/www/72b.html";
     return 0;
 }
 
@@ -226,9 +184,10 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequ
     //we should first check if it is a complete message (ends with \r\n\r\n)
     //The check for previous_request_data_.size() is done for the case where the previous
     //request was incomplete, so in this case we should proccess the request in the else statement that follows
-    int first_index_of_crlfcrlf = data_.indexOf(crlf_crlf);
+    auto crlf_it = std::search(data_.begin(), data_.end(), crlf_crlf.begin(), crlf_crlf.end());
+    auto first_index_of_crlfcrlf = std::distance(data_.begin(), crlf_it);
     if (first_index_of_crlfcrlf == bytes_transferred - 4 && previous_request_data_.size() == 0){
-        parse(data_, client_request);
+        parse(data_, bytes_transferred, client_request);
         return true;
     } else {
         //to request den exei symplirwthei akoma opote apothikevoume prosorina oti lifthike
@@ -236,9 +195,10 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequ
 
         //efoson sto previous_request_data_ yparxei crlfcrlf tote
         //to mynima symplirwthike opote tha to lanw parse
-        first_index_of_crlfcrlf = previous_request_data_.indexOf(crlf_crlf);
+        auto crlf_it = std::search(previous_request_data_.begin(), previous_request_data_.end(), crlf_crlf.begin(), crlf_crlf.end());
+        auto first_index_of_crlfcrlf = std::distance(previous_request_data_.begin(), crlf_it);
         if (first_index_of_crlfcrlf > -1){
-            parse(data_, client_request);
+            parse(data_, bytes_transferred, client_request);
             return true;
             previous_request_data_.clear();
         } else {

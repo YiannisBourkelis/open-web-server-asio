@@ -5,30 +5,43 @@
 #include <unordered_map>
 #include "cache_key.h"
 #include "cache_content.h"
-#include <QStringRef>
+#include <string>
+#include "vector"
+
+enum class http_protocol_version {
+    HTTP_2_0,
+    HTTP_1_1,
+    HTTP_1_0,
+    HTTP_0_9
+};
+
+enum class http_connection {
+    unknown,
+    keep_alive,
+    close
+};
 
 class ClientRequest
 {
 public:
     ClientRequest();
 
-    QString raw_request;
-    QString uri;
-    QStringRef uri_ref;
-    QStringRef host_ref;
-    QString hostname;
+    std::vector<char> raw_request;
+    std::string uri;
+    std::string hostname;
+    http_protocol_version http_protocol_ver;
+    http_connection connection;
 
     bool is_range_request;
     unsigned long long int range_from_byte;
     unsigned long long int range_until_byte;
 
     int parser_content_begin_index;
-    //int parser_content_end_index;
 
     ClientResponse response;
     std::unordered_map<CacheKey, CacheContent>::iterator cache_iterator;
 
-    QString hostname_and_uri;//ypologizetai otan ginei parse to uri kai to hostname
+    std::string hostname_and_uri;//ypologizetai otan ginei parse to uri kai to hostname
 private:
 };
 

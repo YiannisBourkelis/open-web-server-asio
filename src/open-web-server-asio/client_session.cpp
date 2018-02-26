@@ -1,5 +1,6 @@
 #include "client_session.h"
 #include "server_config.h"
+#include <boost/utility/string_view.hpp>
 #include "http_response_templates.h"
 #include "rocket.h"
 #include "cache_content.h"
@@ -162,7 +163,8 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
 
             //enimerwnw to yparxon megethos tis cache
             rocket::cache.cache_current_size = cache_size_with_new_file;
-            std::string mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name().toStdString();
+
+            std::string mime_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri)).name().toStdString();
 
             QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
@@ -255,7 +257,7 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -280,7 +282,7 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -359,9 +361,9 @@ bool ClientSession::try_send_directory_listing(){
         }else {
             url_encoded = file.fileName().replace(" ", "%20").toStdWString();
             //einai arxeio
-            os << "<br /><a href=""" << (client_request_.uri.endsWith(slash) ?
-                                             client_request_.uri.toStdWString() :
-                                             client_request_.uri.toStdWString() +  slash.toStdWString())
+            os << "<br /><a href=""" << (QString::fromStdString(client_request_.uri).endsWith(slash) ?
+                                             QString::fromStdString(client_request_.uri).toStdWString() :
+                                             QString::fromStdString(client_request_.uri).toStdWString() +  slash.toStdWString())
                                         + url_encoded << """>"
             << file.fileName().toHtmlEscaped().toStdWString() << "</a>";
         }
@@ -427,10 +429,15 @@ void ClientSession::handle_write(const boost::system::error_code& error)
             client_request_.response.current_state = ClientResponse::state::begin;
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
-            socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                    boost::bind(&ClientSession::handle_read, this,
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred));
+            if (client_request_.connection == http_connection::keep_alive){
+                socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                        boost::bind(&ClientSession::handle_read, this,
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred));
+            }else {
+                //based on the headers of the client request we should close the connection
+                socket().close();
+            }
 
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
             //to arxeio prepei na apostalei se tmimata opote sinexizw tin apostoli apo ekei pou meiname
