@@ -9,6 +9,7 @@
 #include <time.h>
 #include <QFileInfo>
 #include <QDir>
+#include <QLocale>
 
 const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
@@ -206,12 +207,13 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
 
             QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
-            std::string modified_date_ = (qfile_info.lastModified().toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT").toStdString(); //TODO: formating a QDateTime is very slow.
+            //TODO: formating a QDateTime is very slow.
+            std::string modified_date_ = rocket::en_us_locale.toString(qfile_info.lastModified(), "ddd, dd MMM yyyy hh:mm:ss 'GMT'").toStdString();
             CacheContent cache_content(response_body_vect,
                                        mime_,
                                        modified_date_,
                                        etag_
-                                       );//TODO: na ylopoiisw diki mou function gia lipsi mime. einai ligo argi afti tou Qt
+                                       );//TODO: I should implement my own implementation of getting the mime type based on a mime file located at the folder where the server.config is
 
 
             //kataxwrw to file stin cache kai lamvanw referense pros afto
@@ -429,8 +431,8 @@ bool ClientSession::try_send_directory_listing(){
         }
     }//for loop
 
-    std::wstring response_body = HTTP_Response_Templates::_DIRECTORY_LISTING_.arg(client_request_.response.absolute_hostname_and_requested_path,
-                                                                     QString::fromStdWString(os.str())).toStdWString();
+    std::string response_body = HTTP_Response_Templates::_DIRECTORY_LISTING_.arg(client_request_.response.absolute_hostname_and_requested_path,
+                                                                     QString::fromStdWString(os.str())).toStdString();
 
     //to length tou body se QString
     std::stringstream ssize_;
@@ -445,8 +447,8 @@ bool ClientSession::try_send_directory_listing(){
 
     //prosthetw sto header to body
 
-    std::vector<char> resp_vector(std::make_move_iterator(resp_header_string.begin()), std::make_move_iterator(resp_header_string.end()));
-    resp_vector.insert(resp_vector.end(), std::make_move_iterator(response_body.begin()), std::make_move_iterator(response_body.end()));
+    std::vector<char> resp_vector(resp_header_string.begin(), resp_header_string.end());
+    resp_vector.insert(resp_vector.end(), response_body.begin(), response_body.end());
 
     client_request_.response.current_state = ClientResponse::state::single_send;
 
@@ -532,6 +534,7 @@ void ClientSession::handle_write(const boost::system::error_code& error)
                 } else {
                     socket().close();
                 }
+                delete this;
             }
 
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
