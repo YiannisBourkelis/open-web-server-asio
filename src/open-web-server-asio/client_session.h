@@ -5,15 +5,14 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+
 #include <QByteArray>
 #include <QString>
 #include <QFile>
 #include "client_request.h"
 #include "client_request_parser.h"
-//#include "client_response_generator.h"
 #include "client_response.h"
 #include <QMimeDatabase>
-//#include "server_config.h"
 
 using namespace boost::asio;
 
@@ -28,6 +27,7 @@ public:
 private:
     //variables
     ip::tcp::socket socket_;
+
     const int REQUEST_BUFFER_SIZE = 1024;
     static const QMimeDatabase mime_db_;
 

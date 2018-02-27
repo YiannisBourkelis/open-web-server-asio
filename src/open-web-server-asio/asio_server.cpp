@@ -5,6 +5,7 @@ AsioServer::AsioServer(io_service &io_service, short port) :
     io_service_(io_service),
     acceptor_(io_service, ip::tcp::endpoint(ip::tcp::v4(), port))
 {
+
     //disable naggle algorithm
     ip::tcp::no_delay no_delay_option_(true);
     acceptor_.set_option(no_delay_option_);

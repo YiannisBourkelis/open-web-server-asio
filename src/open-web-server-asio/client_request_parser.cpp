@@ -10,6 +10,8 @@ ClientRequestParser::ClientRequestParser()
     data_.resize(REQUEST_BUFFER_SIZE);
 }
 
+//https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+
 //---- Possible parse algorithm improvements:
 //- The first line of the request is allways GET/POST/HEAD etc. Checking for the request type can be done outside
 //  of the main parser loop. The main parser loop should run for the headers with non-standard line position
