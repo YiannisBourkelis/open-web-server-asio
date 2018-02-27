@@ -66,11 +66,15 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
 
         for (auto listen__ : http_setting["virtual_host"]["listen"]){
             for (size_t vhost_hostnames_idx = 0; vhost_hostnames_idx < vhost_hostnames.size(); vhost_hostnames_idx++){
+                bool is_encrypted_server = false;
+                if (listen__["encryption"].is_boolean()){
+                    is_encrypted_server = listen__["encryption"].get<bool>();
+                }
 
                 int port_ = listen__["port"].get<short>();
                 if (server_open_ports.find(port_) == server_open_ports.end()){
                     /******* HERE A NEW SERVER IS CREATED AND IS LISTENING FOR INCOMMING CONNECTIONS ****/
-                    server_open_ports.insert(std::make_pair(port_, new AsioServer(io_service_, port_)));
+                    server_open_ports.insert(std::make_pair(port_, new AsioServer(io_service_, port_, is_encrypted_server)));
                 }
 
                 QString port__ = QString::number(port_);

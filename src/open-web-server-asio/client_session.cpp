@@ -14,7 +14,10 @@ const QMimeDatabase ClientSession::mime_db_;
 const int ClientSession::FILE_CHUNK_SIZE;
 
 //constructor
-ClientSession::ClientSession(boost::asio::io_service& io_service) : socket_(io_service)
+ClientSession::ClientSession(boost::asio::io_service& io_service, boost::asio::ssl::context& context, bool is_encrypted_session) :
+    socket_(io_service),
+    ssl_socket_(io_service, context),
+    is_encrypted_session_(is_encrypted_session)
 {
     //resize the buffer to accept the request.
     //data_.resize(REQUEST_BUFFER_SIZE);
@@ -27,14 +30,41 @@ ip::tcp::socket& ClientSession::socket()
     return socket_;
 }
 
+boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::lowest_layer_type& ClientSession::ssl_socket()
+{
+  return ssl_socket_.lowest_layer();
+}
+
 void ClientSession::start()
 {
-    //Read some data from the client and invoke the callback
-    //to proccess the client request
-    socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                            boost::bind(&ClientSession::handle_read, this,
-                            boost::asio::placeholders::error,
-                            boost::asio::placeholders::bytes_transferred));
+    if (is_encrypted_session_){
+        ssl_socket_.async_handshake(boost::asio::ssl::stream_base::server,
+                                    boost::bind(&ClientSession::handle_handshake, this,
+                                    boost::asio::placeholders::error));
+    } else {
+        //Read some data from the client and invoke the callback
+        //to proccess the client request
+        socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                boost::bind(&ClientSession::handle_read, this,
+                                boost::asio::placeholders::error,
+                                boost::asio::placeholders::bytes_transferred));
+    }
+}
+
+void ClientSession::handle_handshake(const boost::system::error_code& error)
+{
+  if (!error)
+  {
+    ssl_socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+        boost::bind(&ClientSession::handle_read, this,
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred));
+  }
+  else
+  {
+    std::cout << error.message() << "  Error Value: " << error.value() << std::endl;
+    delete this;
+  }
 }
 
 void ClientSession::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
@@ -72,10 +102,18 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
 
 
         } else {
-            socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                    boost::bind(&ClientSession::handle_read, this,
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred));
+            if (is_encrypted_session_){
+                ssl_socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                        boost::bind(&ClientSession::handle_read, this,
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred));
+
+            } else {
+                socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                        boost::bind(&ClientSession::handle_read, this,
+                                        boost::asio::placeholders::error,
+                                        boost::asio::placeholders::bytes_transferred));
+            }
         }
     } else {
         //error on read. Usually this means that the client disconnected, so
@@ -216,10 +254,17 @@ void ClientSession::send_file_from_cache(){
         buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
 
         client_request_.response.current_state = ClientResponse::state::single_send;
-        boost::asio::async_write(socket_,
-                                 buffers,
-                                 boost::bind(&ClientSession::handle_write, this,
-                                 boost::asio::placeholders::error));
+        if (is_encrypted_session_){
+            boost::asio::async_write(ssl_socket_,
+                                     buffers,
+                                     boost::bind(&ClientSession::handle_write, this,
+                                     boost::asio::placeholders::error));
+        } else {
+            boost::asio::async_write(socket_,
+                                     buffers,
+                                     boost::bind(&ClientSession::handle_write, this,
+                                     boost::asio::placeholders::error));
+        }
     } else {
         unsigned long long int range_size = (client_request_.range_until_byte - client_request_.range_from_byte) + 1;
         //apostelw prwta ta headers
@@ -237,10 +282,18 @@ void ClientSession::send_file_from_cache(){
         buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
 
         client_request_.response.current_state = ClientResponse::state::single_send;
-        boost::asio::async_write(socket_,
-                                 buffers,
-                                 boost::bind(&ClientSession::handle_write, this,
-                                 boost::asio::placeholders::error));
+        if (is_encrypted_session_){
+            boost::asio::async_write(ssl_socket_,
+                                     buffers,
+                                     boost::bind(&ClientSession::handle_write, this,
+                                     boost::asio::placeholders::error));
+        }else{
+            boost::asio::async_write(socket_,
+                                     buffers,
+                                     boost::bind(&ClientSession::handle_write, this,
+                                     boost::asio::placeholders::error));
+        }
+
     }
 }
 
@@ -304,10 +357,17 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
         client_request_.response.current_state = ClientResponse::state::chunk_send;
     }//if file_size chunck check
 
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.data.data(), total_response_size),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+    if (is_encrypted_session_){
+        boost::asio::async_write(ssl_socket_,
+                                 boost::asio::buffer(client_request_.response.data.data(), total_response_size),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    } else {
+        boost::asio::async_write(socket_,
+                                 boost::asio::buffer(client_request_.response.data.data(), total_response_size),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }
 }
 
 //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
@@ -389,10 +449,18 @@ bool ClientSession::try_send_directory_listing(){
     resp_vector.insert(resp_vector.end(), std::make_move_iterator(response_body.begin()), std::make_move_iterator(response_body.end()));
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(resp_vector.data(), resp_vector.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+
+    if (is_encrypted_session_){
+        boost::asio::async_write(ssl_socket_,
+                                 boost::asio::buffer(resp_vector.data(), resp_vector.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }else {
+        boost::asio::async_write(socket_,
+                                 boost::asio::buffer(resp_vector.data(), resp_vector.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }
 
     return true;
 }
@@ -403,10 +471,19 @@ void ClientSession::send_404_not_found_response(){
                        HTTP_Response_Templates::_404_NOT_FOUND_BODY_).toStdString();
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+
+    if (is_encrypted_session_){
+        boost::asio::async_write(ssl_socket_,
+                                 boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+
+    }else{
+        boost::asio::async_write(socket_,
+                                 boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }
 }
 
 void ClientSession::send_400_bad_request_response(){
@@ -415,10 +492,17 @@ void ClientSession::send_400_bad_request_response(){
                        HTTP_Response_Templates::_400_BAD_REQUEST_BODY_).toStdString();
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+    if (is_encrypted_session_){
+        boost::asio::async_write(ssl_socket_,
+                                 boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    } else {
+        boost::asio::async_write(socket_,
+                                 boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                                 boost::bind(&ClientSession::handle_write, this,
+                                 boost::asio::placeholders::error));
+    }
 }
 
 //
@@ -430,13 +514,24 @@ void ClientSession::handle_write(const boost::system::error_code& error)
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
             if (client_request_.connection == http_connection::keep_alive){
-                socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                        boost::bind(&ClientSession::handle_read, this,
-                                        boost::asio::placeholders::error,
-                                        boost::asio::placeholders::bytes_transferred));
+                if (is_encrypted_session_){
+                    ssl_socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                            boost::bind(&ClientSession::handle_read, this,
+                                            boost::asio::placeholders::error,
+                                            boost::asio::placeholders::bytes_transferred));
+                }else{
+                    socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
+                                            boost::bind(&ClientSession::handle_read, this,
+                                            boost::asio::placeholders::error,
+                                            boost::asio::placeholders::bytes_transferred));
+                }
             }else {
                 //based on the headers of the client request we should close the connection
-                socket().close();
+                if(is_encrypted_session_){
+                    ssl_socket().close();
+                } else {
+                    socket().close();
+                }
             }
 
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){

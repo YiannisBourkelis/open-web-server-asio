@@ -32,6 +32,7 @@ ClientRequestParser::ClientRequestParser()
 int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request){
 
     http_parser_state current_state = start_state;
+    client_request.connection = http_connection::unknown;
 
     for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
 
@@ -193,13 +194,13 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
     client_request.is_range_request = false;
 
     //set the connection property to keep allive or close based on the request headers
-    if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_1){
-        client_request.connection = http_connection::keep_alive;
-    }else if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
-              client_request.http_protocol_ver == http_protocol_version::HTTP_0_9){
-        client_request.connection = http_connection::close;
-    } else {
-        client_request.connection = http_connection::unknown;
+    if (client_request.connection == http_connection::unknown){
+        if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_1){
+            client_request.connection = http_connection::keep_alive;
+        }else if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
+                  client_request.http_protocol_ver == http_protocol_version::HTTP_0_9){
+            client_request.connection = http_connection::close;
+        }
     }
 
     return 0;

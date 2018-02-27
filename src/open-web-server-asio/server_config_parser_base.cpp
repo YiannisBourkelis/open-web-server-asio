@@ -38,5 +38,6 @@ bool ServerConfigParserBase::parse_config_file(const QString &filename,
     Q_UNUSED(filename);
     Q_UNUSED(server_config_map);
     Q_UNUSED(server_open_ports);
+    Q_UNUSED(io_service_);
     return false;
 }

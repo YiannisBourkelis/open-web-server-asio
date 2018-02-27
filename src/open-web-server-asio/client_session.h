@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include <QByteArray>
 #include <QString>
@@ -19,14 +20,17 @@ using namespace boost::asio;
 class ClientSession
 {
 public:
-    ClientSession (boost::asio::io_service& io_service);
+    ClientSession (boost::asio::io_service& io_service, boost::asio::ssl::context& context, bool is_encrypted_session);
 
     //methods
     ip::tcp::socket &socket();
+    boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::lowest_layer_type& ssl_socket();
     void start();
 private:
     //variables
     ip::tcp::socket socket_;
+    boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket_;
+    bool is_encrypted_session_;
 
     const int REQUEST_BUFFER_SIZE = 1024;
     static const QMimeDatabase mime_db_;
@@ -53,6 +57,7 @@ private:
     void send_404_not_found_response();
     bool try_send_directory_listing();
     void send_400_bad_request_response();
+    void handle_handshake(const boost::system::error_code &error);
 };
 
 #endif // CLIENT_SESSION_H

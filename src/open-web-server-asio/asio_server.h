@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include "client_session.h"
 //#include "server_config.h"
 
@@ -14,7 +15,7 @@ class AsioServer
 {
 public:
     //constructor. Starts the server and begins accepting connections
-    AsioServer(boost::asio::io_service &io_service, short port);
+    AsioServer(boost::asio::io_service &io_service, short port, bool is_encrypted_server);
 
     //async callback: called each time a new client connects
     void handle_accept(ClientSession* new_session, const boost::system::error_code &error);
@@ -23,6 +24,8 @@ public:
 private:
   boost::asio::io_service& io_service_;
   ip::tcp::acceptor acceptor_;
+  bool is_encrypted_server_;
+  boost::asio::ssl::context context_;
 };
 
 #endif // ASIO_SERVER_H

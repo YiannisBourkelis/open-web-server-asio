@@ -7,7 +7,7 @@
 class ServerConfigVirtualHostPortInfo
 {
 public:
-    ServerConfigVirtualHostPortInfo(boost::asio::io_service &io_service__, short port);
+    ServerConfigVirtualHostPortInfo(boost::asio::io_service &io_service__, short port, bool is_encrypted_server);
 
     int port;
     AsioServer *asio_server;
