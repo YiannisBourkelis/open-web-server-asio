@@ -3,10 +3,12 @@
 #include "server_config_json_parser.h"
 #include "server_config.h"
 #include <ctime>
+#include <QLocale>
 
 //public statics
 boost::asio::io_service rocket::io_service;
 Cache rocket::cache(rocket::io_service);
+QLocale rocket::en_us_locale;
 
 //private statics
 std::chrono::time_point<std::chrono::high_resolution_clock> rocket::gmt_date_time_last_;
@@ -21,6 +23,15 @@ rocket::rocket()
 
 void rocket::takeoff(QCoreApplication *qcore_aplication)
 {
+    //required to set the locale to "C", to get
+    //locale independant date/time formats in strftime formating
+    setlocale (LC_ALL,"C");
+
+    //also QDate formating allways get the system locale to
+    //format dates, so I create an en_US locale to allways have
+    //the same date format
+    rocket::en_us_locale = QLocale(QLocale::English, QLocale::UnitedStates);
+
     //load the server config file.
     //This file contains all the server settings regarding
     //virtual hosts, index pages, cache size etc.
@@ -51,7 +62,7 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
         time_now = std::time(nullptr);
         tm * tm_ = gmtime(&time_now);
         char char_time[29];
-        strftime(char_time, 29, "%a, %d %b %Y %T GMT", tm_);
+        strftime(char_time, 30, "%a, %d %b %Y %T GMT", tm_);
         std::string string_time(char_time,29);
         gmt_date_time_ = string_time;
         gmt_date_time_last_ = std::chrono::high_resolution_clock::now();

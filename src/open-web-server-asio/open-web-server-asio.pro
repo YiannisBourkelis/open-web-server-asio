@@ -103,9 +103,17 @@ macx:INCLUDEPATH += /Users/yiannis/Projects/poll-echo-client-server-gihub/poll-e
 # 2)    nmake clean
 # 3)    nmake
 # this should compile openssl on windows
-windows:LIBS += -L$$PWD/../OpenSSL-1.1.0g/ -llibcrypto
-windows:LIBS += -L$$PWD/../OpenSSL-1.1.0g/ -llibssl
-windows:INCLUDEPATH += $$PWD/../OpenSSL-1.1.0g/include/
+#windows:LIBS += -LC:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/OpenSSL-1.1.0g -llibcrypto
+#windows:LIBS += -LC:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/OpenSSL-1.1.0g -llibssl
+#windows:INCLUDEPATH += "C:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/OpenSSL-1.1.0g/include/"
+
+#windows:LIBS += -L$$PWD/../OpenSSL-1.1.0g/ -llibcrypto
+#windows:LIBS += -L$$PWD/../OpenSSL-1.1.0g/ -llibssl
+#windows:INCLUDEPATH += $$PWD/../OpenSSL-1.1.0g/include/
+
+windows:LIBS += -LC:/Users/Yiannis/Documents/GitHub/OpenSSL-1.1.0g/ -llibcrypto
+windows:LIBS += -LC:/Users/Yiannis/Documents/GitHub/OpenSSL-1.1.0g/ -llibssl
+windows:INCLUDEPATH += C:/Users/Yiannis/Documents/GitHub/OpenSSL-1.1.0g/include/
 
 # linux compile guide:
 # go inside OpenSSL-x.x folder using the terminal

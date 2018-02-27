@@ -8,6 +8,7 @@
 #include <string>
 #include <chrono>
 #include <QCoreApplication>
+#include <QLocale>
 
 using namespace boost::asio;
 
@@ -21,6 +22,7 @@ public:
     void takeoff(QCoreApplication *qcore_aplication);
     std::unordered_map<short, AsioServer*> servers_;
     static Cache cache;
+    static QLocale en_us_locale;
 
     static const std::string &get_gmt_date_time(std::time_t &time_now);
     static const std::string get_next_etag();

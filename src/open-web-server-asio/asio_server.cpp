@@ -12,8 +12,13 @@ AsioServer::AsioServer(io_service &io_service, short port, bool is_encrypted_ser
         boost::asio::ssl::context::default_workarounds);
         //| boost::asio::ssl::context::no_sslv2);
     //context_.set_password_callback(boost::bind(&server::get_password, this));
+#ifdef WIN32
+   context_.use_certificate_chain_file("C:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/certificate.pem");
+    context_.use_private_key_file("C:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/key.pem", boost::asio::ssl::context::pem);
+#else
     context_.use_certificate_chain_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/certificate.pem");
     context_.use_private_key_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/key.pem", boost::asio::ssl::context::pem);
+#endif
     //context_.use_tmp_dh_file("dh2048.pem");
 
     //disable naggle algorithm
