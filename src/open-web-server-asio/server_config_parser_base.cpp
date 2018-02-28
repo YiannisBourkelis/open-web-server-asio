@@ -32,7 +32,7 @@ ServerConfigParserBase::~ServerConfigParserBase()
 
 bool ServerConfigParserBase::parse_config_file(const QString &filename,
                                                std::unordered_map<QString, ServerConfigVirtualHost> &server_config_map,
-                                               std::unordered_map<short, AsioServer *> &server_open_ports,
+                                               std::unordered_map<short, AsioServerBase*> &server_open_ports,
                                                io_service &io_service_)
 {
     Q_UNUSED(filename);

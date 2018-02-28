@@ -1,10 +1,8 @@
-#include "asio_server.h"
+#include "asio_server_encrypted.h"
 
 //constructor. Starts the server and begins accepting connections
-AsioServer::AsioServer(io_service &io_service, short port, bool is_encrypted_server) :
-    io_service_(io_service),
-    acceptor_(io_service, ip::tcp::endpoint(ip::tcp::v4(), port)),
-    is_encrypted_server_(is_encrypted_server),
+AsioServerEncrypted::AsioServerEncrypted(io_service &io_service, short port) :
+    AsioServerBase(io_service, port),
     context_(boost::asio::ssl::context::tls)
 {
     //encryption specific
@@ -26,56 +24,51 @@ AsioServer::AsioServer(io_service &io_service, short port, bool is_encrypted_ser
     acceptor_.set_option(no_delay_option_);
 
     //create a client session object where we will handle the communication with the client.
-    ClientSession *new_session = new ClientSession(this->io_service_, context_, is_encrypted_server); //= new ClientSession(io_service_);
+
+    ClientSessionEncrypted *new_session = new ClientSessionEncrypted(this->io_service_, context_); //= new ClientSession(io_service_);
 
     //When a new client connects, call AsioServer::handle_accept accept
     //so that we can accept the new client and begin communicating with him.
     //Notice that we pass the new_session object we created.
-    if (is_encrypted_server_){
-        acceptor_.async_accept(new_session->ssl_socket(),
-                               boost::bind(&AsioServer::handle_accept, this, new_session,
-                               boost::asio::placeholders::error));
-    }else{
-        acceptor_.async_accept(new_session->socket(),
-                               boost::bind(&AsioServer::handle_accept, this, new_session,
-                               boost::asio::placeholders::error));
-    }
+    acceptor_.async_accept(new_session->ssl_socket(),
+                           boost::bind(&AsioServerEncrypted::handle_accept, this, new_session,
+                           boost::asio::placeholders::error));
 
     //m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true))
 }
 
+AsioServerEncrypted::~AsioServerEncrypted()
+{
+
+}
+
+
 //async callback: called each time a new client connects
-void AsioServer::handle_accept(ClientSession* new_session, const boost::system::error_code& error)
+void AsioServerEncrypted::handle_accept(ClientSessionEncrypted* new_session, const boost::system::error_code& error)
 {
     if (!error) {
         //if there is no error the client is accepted.
 
         //disable the naggle algorithm
         ip::tcp::no_delay no_delay_option_(true);
-        if (is_encrypted_server_){
-            new_session->ssl_socket().set_option(no_delay_option_);
-        }else {
-            new_session->socket().set_option(no_delay_option_);
-        }
+        new_session->ssl_socket().set_option(no_delay_option_);
 
 
         //**** starts recieving data inside the client session object.
         new_session->start();
         //****
 
+
         //Create a new client session for the next client
         //when it will connect, and provide the callback function to accept the connection.
-        new_session = new ClientSession(io_service_, context_, is_encrypted_server_);
+         new_session = new ClientSessionEncrypted(this->io_service_, context_); //= new ClientSession(io_service_);
 
-        if (is_encrypted_server_){
-            acceptor_.async_accept(new_session->ssl_socket(),
-                                   boost::bind(&AsioServer::handle_accept, this, new_session,
-                                   boost::asio::placeholders::error));
-        } else {
-            acceptor_.async_accept(new_session->socket(),
-                                   boost::bind(&AsioServer::handle_accept, this, new_session,
-                                   boost::asio::placeholders::error));
-        }
+        //When a new client connects, call AsioServer::handle_accept accept
+        //so that we can accept the new client and begin communicating with him.
+        //Notice that we pass the new_session object we created.
+        acceptor_.async_accept(new_session->ssl_socket(),
+                               boost::bind(&AsioServerEncrypted::handle_accept, this, new_session,
+                               boost::asio::placeholders::error));
 
     } else {
         //if there is an error on accept delete the client session.

@@ -16,8 +16,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp \
     rocket.cpp \
-    asio_server.cpp \
-    client_session.cpp \
     client_request.cpp \
     client_request_parser.cpp \
     client_response.cpp \
@@ -30,7 +28,13 @@ SOURCES += main.cpp \
     cache.cpp \
     cache_key.cpp \
     cache_content.cpp \
-    cache_remove.cpp
+    cache_remove.cpp \
+    client_session_base.cpp \
+    client_session_plain.cpp \
+    client_session_encrypted.cpp \
+    asio_server_base.cpp \
+    asio_server_plain.cpp \
+    asio_server_encrypted.cpp
 
 # boost libraries build guide
 # - download boost
@@ -62,8 +66,6 @@ linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
 
 HEADERS += \
     rocket.h \
-    asio_server.h \
-    client_session.h \
     client_request.h \
     client_request_parser.h \
     client_response.h \
@@ -77,7 +79,13 @@ HEADERS += \
     cache.h \
     cache_key.h \
     cache_content.h \
-    cache_remove.h
+    cache_remove.h \
+    client_session_base.h \
+    client_session_plain.h \
+    client_session_encrypted.h \
+    asio_server_base.h \
+    asio_server_plain.h \
+    asio_server_encrypted.h
 
 
 #***************************************************************

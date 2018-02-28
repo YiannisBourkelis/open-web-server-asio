@@ -3,7 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <unordered_map>
-#include "asio_server.h"
+#include "asio_server_base.h"
 #include "cache.h"
 #include <string>
 #include <chrono>
@@ -20,7 +20,7 @@ public:
     static boost::asio::io_service io_service;
 
     void takeoff(QCoreApplication *qcore_aplication);
-    std::unordered_map<short, AsioServer*> servers_;
+    std::unordered_map<short, AsioServerBase*> servers_;
     static Cache cache;
     static QLocale en_us_locale;
 

@@ -26,7 +26,7 @@
 
 boost::asio::io_service *ServerConfig::io_service_;
 std::unordered_map<QString, ServerConfigVirtualHost> ServerConfig::server_config_map;
-std::unordered_map<short, AsioServer*> ServerConfig::server_open_ports;
+std::unordered_map<short, AsioServerBase*> ServerConfig::server_open_ports;
 ServerConfigParserBase *ServerConfig::server_config_parser;
 QString ServerConfig::application_path;
 QString ServerConfig::config_file_path;
@@ -109,10 +109,3 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
 
     return false;
 }
-
-/*
-AsioServer ServerConfig::create_asio_server(io_service &io_service, short port)
-{
-    return AsioServer(io_service, port);
-}
-*/

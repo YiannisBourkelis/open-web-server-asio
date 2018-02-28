@@ -1,10 +1,11 @@
-#ifndef CLIENT_SESSION_H
-#define CLIENT_SESSION_H
+#ifndef CLIENT_SESSION_BASE_H
+#define CLIENT_SESSION_BASE_H
 
 #include <cstdlib>
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/buffer.hpp>
 #include <boost/asio/ssl.hpp>
 
 #include <QByteArray>
@@ -17,22 +18,29 @@
 
 using namespace boost::asio;
 
-class ClientSession
+class ClientSessionBase
 {
 public:
-    ClientSession (boost::asio::io_service& io_service, boost::asio::ssl::context& context, bool is_encrypted_session);
+    ClientSessionBase (boost::asio::io_service& io_service);
+    virtual ~ClientSessionBase();
 
     //methods
-    ip::tcp::socket &socket();
-    boost::asio::ssl::stream<boost::asio::ip::tcp::socket>::lowest_layer_type& ssl_socket();
     void start();
+    virtual void async_read_some(std::vector<char> &buffer);
+    virtual void async_write(std::vector<boost::asio::const_buffer> &buffers);
+    virtual void async_write(std::vector<char> &buffer);
+    virtual void close_socket();
+
+protected:
+    ClientRequestParser client_request_parser_;
+    const int REQUEST_BUFFER_SIZE = 1024;//TODO: should be static
+
+    void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
+    void handle_write(const boost::system::error_code &error);
+
 private:
     //variables
-    ip::tcp::socket socket_;
-    boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket_;
-    bool is_encrypted_session_;
-
-    const int REQUEST_BUFFER_SIZE = 1024;
+    boost::asio::io_service &io_service_;
     static const QMimeDatabase mime_db_;
 
     //xwrizei to arxeio pou zitithike se tmimata isa me ta bytes pou orizontai.
@@ -41,13 +49,10 @@ private:
 
 
     ClientRequest client_request_;
-    ClientRequestParser client_request_parser_;
     //ClientResponseGenerator client_response_generator_;
 
 
     //methods
-    void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
-    void handle_write(const boost::system::error_code &error);
     void process_client_request();
     void read_and_send_requested_file(QFile &file_io);
     bool try_get_request_uri_resource(QFile &file_io);
