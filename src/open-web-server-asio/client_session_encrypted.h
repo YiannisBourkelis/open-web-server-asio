@@ -1,7 +1,10 @@
+#ifndef NO_ENCRYPTION
+
 #ifndef CLIENT_SESSION_ENCRYPTED_H
 #define CLIENT_SESSION_ENCRYPTED_H
 
 #include "client_session_base.h"
+#include <boost/asio/ssl.hpp>
 
 class ClientSessionEncrypted : public ClientSessionBase
 {
@@ -29,3 +32,4 @@ private:
 };
 
 #endif // CLIENT_SESSION_ENCRYPTED_H
+#endif // #ifndef NO_ENCRYPTION

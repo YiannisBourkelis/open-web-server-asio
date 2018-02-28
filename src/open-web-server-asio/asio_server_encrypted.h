@@ -1,3 +1,5 @@
+#ifndef NO_ENCRYPTION
+
 #ifndef ASIO_SERVER_ENCRYPTED_H
 #define ASIO_SERVER_ENCRYPTED_H
 
@@ -8,6 +10,7 @@
 #include <boost/asio/ssl.hpp>
 #include "client_session_encrypted.h"
 #include "asio_server_base.h"
+#include <boost/asio/ssl.hpp>
 
 using namespace boost::asio;
 
@@ -25,3 +28,5 @@ private:
 };
 
 #endif // ASIO_SERVER_H
+
+#endif // #ifndef NO_ENCRYPTION

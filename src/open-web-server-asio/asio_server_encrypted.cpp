@@ -1,3 +1,4 @@
+#ifndef NO_ENCRYPTION
 #include "asio_server_encrypted.h"
 
 //constructor. Starts the server and begins accepting connections
@@ -75,3 +76,4 @@ void AsioServerEncrypted::handle_accept(ClientSessionEncrypted* new_session, con
         delete new_session;
     }
 }
+#endif //#ifndef NO_ENCRYPTION

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include "client_session_plain.h"
 #include "asio_server_base.h"
 

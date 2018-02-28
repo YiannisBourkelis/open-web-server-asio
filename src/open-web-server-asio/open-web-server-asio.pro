@@ -14,6 +14,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+#Disables ssl
+DEFINES += NO_ENCRYPTION
+
 SOURCES += main.cpp \
     rocket.cpp \
     client_request.cpp \
@@ -48,7 +51,6 @@ windows:LIBS += "-LC:/Downloads/boost_1_66_0/stage/lib/"
 
 mac:INCLUDEPATH += "/Users/yiannis/Projects/boost_1_66_0"
 mac:LIBS += -L/Users/yiannis/Projects/boost_1_66_0/bin.v2/libs/system/build/darwin-gnu-4.2.1/release/threadapi-pthread/threading-multi -lboost_system
-
 # readelf -d open-web-server-asio to view the executable dependencies
 # if boost libraries are not installed you should install them
 # method 1: sudo apt-get install libboost-all-dev
@@ -98,9 +100,9 @@ HEADERS += \
 # ./Configure darwin64-x86_64-cc -shared
 # make clean
 # make
-macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lcrypto
-macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lssl
-macx:INCLUDEPATH += /Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/include/
+#macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lcrypto
+#macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lssl
+#macx:INCLUDEPATH += /Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/include/
 
 # windows compile guide:
 # install activeperl - https://www.activestate.com/activeperl

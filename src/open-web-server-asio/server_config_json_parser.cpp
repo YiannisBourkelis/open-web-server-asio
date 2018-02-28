@@ -75,7 +75,9 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                 if (server_open_ports.find(port_) == server_open_ports.end()){
                     /******* HERE A NEW SERVER IS CREATED AND IS LISTENING FOR INCOMMING CONNECTIONS ****/
                     if (is_encrypted_server){
+#ifndef NO_ENCRYPTION
                         server_open_ports.insert(std::make_pair(port_, new AsioServerEncrypted(io_service_, port_)));
+#endif
                     } else {
                         server_open_ports.insert(std::make_pair(port_, new AsioServerPlain(io_service_, port_)));
                     }

@@ -1,3 +1,4 @@
+#ifndef NO_ENCRYPTION
 #include "client_session_encrypted.h"
 
 ClientSessionEncrypted::ClientSessionEncrypted(boost::asio::io_service& io_service, boost::asio::ssl::context& context) :
@@ -70,3 +71,4 @@ void ClientSessionEncrypted::async_write(std::vector<char> &buffer)
                              boost::bind(&ClientSessionEncrypted::handle_write, this,
                              boost::asio::placeholders::error));
 }
+#endif //#ifndef NO_ENCRYPTION

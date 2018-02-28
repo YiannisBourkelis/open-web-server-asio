@@ -6,7 +6,6 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/buffer.hpp>
-#include <boost/asio/ssl.hpp>
 
 #include <QByteArray>
 #include <QString>
