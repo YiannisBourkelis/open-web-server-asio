@@ -11,5 +11,7 @@ const std::string &CacheContent::get_data_size_as_string()
     if(data_size_as_string_.empty()){
         data_size_as_string_ = std::to_string(this->data.size());
     }
-    return std::ref(data_size_as_string_);
+    //TODO: should benchmark the use of std::ref if it makes a difference
+    //return std::ref(data_size_as_string_);
+    return data_size_as_string_;
 }
