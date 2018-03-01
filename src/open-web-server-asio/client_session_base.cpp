@@ -197,6 +197,7 @@ void ClientSessionBase::async_write(std::vector<char> &buffer)
 void ClientSessionBase::send_file_from_cache(){
     if (client_request_.is_range_request == false){
         //apostelw prwta ta headers
+        /*
         client_request_.response.header =
                 HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ +
                 rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time) + //get the current datetime as a string and store the current datetime as a time_t value in the last_access_time field.
@@ -209,6 +210,20 @@ void ClientSessionBase::send_file_from_cache(){
                 HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ +
                 client_request_.cache_iterator->second.etag +
                 HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE;
+                */
+                client_request_.response.header.clear();
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+                rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time)).append(
+                HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_).append(
+                client_request_.cache_iterator->second.mime_type).append(
+                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+                client_request_.cache_iterator->second.get_data_size_as_string()).append(
+                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+                client_request_.cache_iterator->second.last_modified).append(
+                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+                client_request_.cache_iterator->second.etag).append(
+                HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE);
 
         std::vector<boost::asio::const_buffer> buffers;
         buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));

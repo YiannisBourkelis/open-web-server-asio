@@ -189,7 +189,9 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
 
 
     //enonw to hostname me to uri
-    client_request.hostname_and_uri = client_request.hostname + client_request.uri;
+    client_request.hostname_and_uri.clear();
+    client_request.hostname_and_uri.append(client_request.hostname).append(client_request.uri);
+    //client_request.hostname_and_uri = client_request.hostname + client_request.uri;
     client_request.is_range_request = false;
 
     //set the connection property to keep allive or close based on the request headers

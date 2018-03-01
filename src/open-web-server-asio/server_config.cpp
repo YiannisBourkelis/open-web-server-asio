@@ -28,6 +28,7 @@ boost::asio::io_service *ServerConfig::io_service_;
 std::unordered_map<QString, ServerConfigVirtualHost> ServerConfig::server_config_map;
 std::unordered_map<short, AsioServerBase*> ServerConfig::server_open_ports;
 ServerConfigParserBase *ServerConfig::server_config_parser;
+
 QString ServerConfig::application_path;
 QString ServerConfig::config_file_path;
 
@@ -99,6 +100,7 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
         file_io.setFileName(client_request.response.absolute_hostname_and_requested_path);
         if (file_io.open(QFileDevice::ReadOnly) == true) {
             //ean vrethike
+            //TODO: should concatenate the strings using append because it is more efficient
                  ends_with_slash ? client_request.uri = client_request.uri + index_filename.toStdString() :
                          client_request.uri = client_request.uri + "/" + index_filename.toStdString();
             return true;
