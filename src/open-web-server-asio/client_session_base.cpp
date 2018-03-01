@@ -2,7 +2,6 @@
 #include "server_config.h"
 #include <boost/utility/string_view.hpp>
 #include "http_response_templates.h"
-#include "rocket.h"
 #include "cache_content.h"
 #include <QStringBuilder>
 #include <QDateTime>
@@ -10,17 +9,12 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QLocale>
-
-const QMimeDatabase ClientSessionBase::mime_db_;
-const int ClientSessionBase::FILE_CHUNK_SIZE;
+#include "rocket.h"
 
 //constructor
 ClientSessionBase::ClientSessionBase(boost::asio::io_service& io_service) :
     io_service_(io_service)
 {
-    //resize the buffer to accept the request.
-    //data_.resize(REQUEST_BUFFER_SIZE);
-    //client_response_generator_.socket = &this->socket();
 }
 
 ClientSessionBase::~ClientSessionBase()
@@ -161,7 +155,7 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
             //enimerwnw to yparxon megethos tis cache
             rocket::cache.cache_current_size = cache_size_with_new_file;
 
-            std::string mime_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri)).name().toStdString();
+            std::string mime_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri)).name().toStdString();
 
             QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
@@ -255,11 +249,11 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
     size_t total_response_size = 0;
     //std::vector<char> response;
     client_request_.response.data.clear();
-    if (remaining_file_size <= FILE_CHUNK_SIZE){
+    if (remaining_file_size <= rocket::FILE_CHUNK_SIZE){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -284,24 +278,24 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
                         ).toStdString();
 
-            total_response_size =  FILE_CHUNK_SIZE + response_header_str.size();
+            total_response_size =  rocket::FILE_CHUNK_SIZE + response_header_str.size();
             client_request_.response.data.reserve(total_response_size);
             client_request_.response.data.insert(client_request_.response.data.end(), response_header_str.begin(), response_header_str.end());
             client_request_.response.data.resize(total_response_size);
 
-            file_io.read(client_request_.response.data.data() + response_header_str.size(), FILE_CHUNK_SIZE);
+            file_io.read(client_request_.response.data.data() + response_header_str.size(), rocket::FILE_CHUNK_SIZE);
         } else {
             //apostoli endiamesou tmimatos
-            total_response_size =  FILE_CHUNK_SIZE;
+            total_response_size =  rocket::FILE_CHUNK_SIZE;
             client_request_.response.data.resize(total_response_size);
             file_io.seek(client_request_.response.bytes_of_file_sent);
-            file_io.read(client_request_.response.data.data(), FILE_CHUNK_SIZE);
+            file_io.read(client_request_.response.data.data(), rocket::FILE_CHUNK_SIZE);
         }
         client_request_.response.current_state = ClientResponse::state::chunk_send;
     }//if file_size chunck check
@@ -439,7 +433,7 @@ void ClientSessionBase::handle_write(const boost::system::error_code& error)
 
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
             //to arxeio prepei na apostalei se tmimata opote sinexizw tin apostoli apo ekei pou meiname
-            client_request_.response.bytes_of_file_sent += FILE_CHUNK_SIZE;
+            client_request_.response.bytes_of_file_sent += rocket::FILE_CHUNK_SIZE;
             QFile file_io (client_request_.response.absolute_hostname_and_requested_path);
             file_io.open(QFileDevice::ReadOnly);
             read_and_send_requested_file(file_io);

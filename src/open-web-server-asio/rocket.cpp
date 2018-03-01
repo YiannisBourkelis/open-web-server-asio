@@ -9,6 +9,9 @@
 boost::asio::io_service rocket::io_service;
 Cache rocket::cache(rocket::io_service);
 QLocale rocket::en_us_locale;
+const QMimeDatabase rocket::mime_db_;
+const int rocket::FILE_CHUNK_SIZE;
+const int rocket::REQUEST_BUFFER_SIZE;
 
 //private statics
 std::chrono::time_point<std::chrono::high_resolution_clock> rocket::gmt_date_time_last_;

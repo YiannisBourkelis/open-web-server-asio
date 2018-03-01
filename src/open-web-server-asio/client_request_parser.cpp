@@ -5,9 +5,8 @@
 
 using namespace enums;
 
-ClientRequestParser::ClientRequestParser()
+ClientRequestParser::ClientRequestParser() : data_(REQUEST_BUFFER_SIZE)
 {
-    data_.resize(REQUEST_BUFFER_SIZE);
 }
 
 //https://en.wikipedia.org/wiki/List_of_HTTP_header_fields

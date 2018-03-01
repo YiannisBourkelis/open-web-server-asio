@@ -3,9 +3,6 @@
 ClientSessionPlain::ClientSessionPlain(boost::asio::io_service& io_service) :
      ClientSessionBase(io_service), socket_(io_service)
 {
-    //resize the buffer to accept the request.
-    //data_.resize(REQUEST_BUFFER_SIZE);
-    //client_response_generator_.socket = &this->socket();
 }
 
 ClientSessionPlain::~ClientSessionPlain()

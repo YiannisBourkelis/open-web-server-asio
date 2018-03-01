@@ -5,9 +5,6 @@ ClientSessionEncrypted::ClientSessionEncrypted(boost::asio::io_service& io_servi
     ClientSessionBase(io_service),
     ssl_socket_(io_service, context)
 {
-    //resize the buffer to accept the request.
-    //data_.resize(REQUEST_BUFFER_SIZE);
-    //client_response_generator_.socket = &this->socket();
 }
 
 ClientSessionEncrypted::~ClientSessionEncrypted()
@@ -50,7 +47,7 @@ void ClientSessionEncrypted::handle_handshake(const boost::system::error_code& e
 
 void ClientSessionEncrypted::async_read_some(std::vector<char> &buffer)
 {
-    ssl_socket_.async_read_some(boost::asio::buffer(buffer.data(), REQUEST_BUFFER_SIZE),
+    ssl_socket_.async_read_some(boost::asio::buffer(buffer.data(), buffer.size()),
                             boost::bind(&ClientSessionEncrypted::handle_read, this,
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));
