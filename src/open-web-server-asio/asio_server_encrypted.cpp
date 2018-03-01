@@ -4,7 +4,7 @@
 //constructor. Starts the server and begins accepting connections
 AsioServerEncrypted::AsioServerEncrypted(io_service &io_service, short port) :
     AsioServerBase(io_service, port),
-    context_(boost::asio::ssl::context::tls)
+    context_(boost::asio::ssl::context::tlsv12)
 {
     //encryption specific
     context_.set_options(
