@@ -15,7 +15,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 #Disables ssl
-DEFINES += NO_ENCRYPTION
+#DEFINES += NO_ENCRYPTION
 
 SOURCES += main.cpp \
     rocket.cpp \
@@ -100,9 +100,9 @@ HEADERS += \
 # ./Configure darwin64-x86_64-cc -shared
 # make clean
 # make
-#macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lcrypto
-#macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lssl
-#macx:INCLUDEPATH += /Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/include/
+macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lcrypto
+macx:LIBS += -L/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/ -lssl
+macx:INCLUDEPATH += /Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/OpenSSL-1.1.0g/include/
 
 # windows compile guide:
 # install activeperl - https://www.activestate.com/activeperl

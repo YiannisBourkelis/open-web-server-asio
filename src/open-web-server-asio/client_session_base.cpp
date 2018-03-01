@@ -40,6 +40,7 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
 {
     if (!error)
     {
+
         /*
         //benchmarking
         std::string respstr ("HTTP/1.1 200 OK\r\n"
@@ -50,6 +51,7 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
                                    */
 
 
+
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
         if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
@@ -58,14 +60,14 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
             process_client_request();
 
 
+
             /*
             //benchmarking
             client_request_.response.current_state = ClientResponse::state::single_send;
-            boost::asio::async_write(socket_,
-                                     boost::asio::buffer(respstr.data(), respstr.size()),
-                                     boost::bind(&ClientSessionBase::handle_write, this,
-                                     boost::asio::placeholders::error));
-                                     */
+            auto vect = std::vector<char>(respstr.begin(), respstr.end());
+            async_write(vect);
+            */
+
 
 
         } else {
@@ -199,7 +201,6 @@ void ClientSessionBase::async_write(std::vector<char> &buffer)
 
 
 void ClientSessionBase::send_file_from_cache(){
-
     if (client_request_.is_range_request == false){
         //apostelw prwta ta headers
         client_request_.response.header =
