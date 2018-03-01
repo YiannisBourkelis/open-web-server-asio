@@ -10,15 +10,19 @@
         "server_name": ["localhost", "www.localhost"],
 
         "listen" : [
-          {"port" : 12343}
+          {"port" : 12343},
+          {"port" : 12345},
+          {"port" : 12346}
         ],
 
         "document_root" : "/Users/yiannis/www/localhost/public_html",
         "directory_listing" : true,
 
         "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
 
-        "location" : [
+        "uri" : [
+          {"file_extension" : "php"},
           {"proxy_pass" : "http://localhost:5000"}
         ]
       }

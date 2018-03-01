@@ -34,7 +34,6 @@ void AsioServerPlain::handle_accept(ClientSessionPlain* new_session, const boost
 
         //disable the naggle algorithm
         ip::tcp::no_delay no_delay_option_(true);
-
         new_session->socket().set_option(no_delay_option_);
 
 
