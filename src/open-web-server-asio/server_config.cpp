@@ -26,8 +26,9 @@
 
 boost::asio::io_service *ServerConfig::io_service_;
 std::unordered_map<QString, ServerConfigVirtualHost> ServerConfig::server_config_map;
-std::unordered_map<short, AsioServer*> ServerConfig::server_open_ports;
+std::unordered_map<short, AsioServerBase*> ServerConfig::server_open_ports;
 ServerConfigParserBase *ServerConfig::server_config_parser;
+
 QString ServerConfig::application_path;
 QString ServerConfig::config_file_path;
 
@@ -56,12 +57,12 @@ bool ServerConfig::parse_config_file(QString filename)
 bool ServerConfig::is_valid_requested_hostname(ClientRequest &client_request)
 {
     //anazitisi ean to hostname yparxei sto map me ta hostnames
-    auto it = ServerConfig::server_config_map.find(client_request.hostname);
+    auto it = ServerConfig::server_config_map.find(QString::fromStdString(client_request.hostname));
 
     if (it != ServerConfig::server_config_map.end()){
         //to hostname vrethike opote lamvanw to path tou kai to ennonw me to
         //path tou resource pou zitithike
-        client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % client_request.uri;
+        client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.uri);
         client_request.response.server_config_map_it = std::move(it);
         return true;
     } else {
@@ -69,7 +70,7 @@ bool ServerConfig::is_valid_requested_hostname(ClientRequest &client_request)
         it = ServerConfig::server_config_map.find("*");
         if (it != ServerConfig::server_config_map.end()){
             std::vector<QString> directoryIndexes = it->second.directoryIndexes;
-            client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % client_request.uri;
+            client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.uri);
             client_request.response.server_config_map_it = std::move(it);
             return true;
         }
@@ -99,8 +100,9 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
         file_io.setFileName(client_request.response.absolute_hostname_and_requested_path);
         if (file_io.open(QFileDevice::ReadOnly) == true) {
             //ean vrethike
-                 ends_with_slash ? client_request.uri = client_request.uri % index_filename :
-                         client_request.uri = client_request.uri % "/" % index_filename;
+            //TODO: should concatenate the strings using append because it is more efficient
+                 ends_with_slash ? client_request.uri = client_request.uri + index_filename.toStdString() :
+                         client_request.uri = client_request.uri + "/" + index_filename.toStdString();
             return true;
         }
         //epanaferw to absolute path opws itan
@@ -109,10 +111,3 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
 
     return false;
 }
-
-/*
-AsioServer ServerConfig::create_asio_server(io_service &io_service, short port)
-{
-    return AsioServer(io_service, port);
-}
-*/

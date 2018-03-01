@@ -27,7 +27,8 @@
 #include "server_config_virtualhost.h"
 #include "server_config_virtualhost_portinfo.h"
 #include <boost/asio.hpp>
-#include "asio_server.h"
+#include "asio_server_encrypted.h"
+#include "asio_server_plain.h"
 
 class ServerConfigParserBase
 {
@@ -40,7 +41,7 @@ public:
     //methods
     virtual bool parse_config_file(const QString &filename,
                                    std::unordered_map<QString, ServerConfigVirtualHost> &server_config_map,
-                                   std::unordered_map<short, AsioServer*> &server_open_ports,
+                                   std::unordered_map<short, AsioServerBase*> &server_open_ports,
                                    boost::asio::io_service &io_service_);
 };
 

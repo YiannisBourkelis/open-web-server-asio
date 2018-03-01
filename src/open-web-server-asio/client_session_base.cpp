@@ -1,42 +1,36 @@
-#include "client_session.h"
+#include "client_session_base.h"
 #include "server_config.h"
+#include <boost/utility/string_view.hpp>
 #include "http_response_templates.h"
-#include "rocket.h"
 #include "cache_content.h"
 #include <QStringBuilder>
 #include <QDateTime>
 #include <time.h>
 #include <QFileInfo>
 #include <QDir>
-
-const QMimeDatabase ClientSession::mime_db_;
-const int ClientSession::FILE_CHUNK_SIZE;
+#include <QLocale>
+#include "rocket.h"
 
 //constructor
-ClientSession::ClientSession(boost::asio::io_service& io_service) : socket_(io_service)
+ClientSessionBase::ClientSessionBase(boost::asio::io_service& io_service) :
+    io_service_(io_service)
 {
-    //resize the buffer to accept the request.
-    //data_.resize(REQUEST_BUFFER_SIZE);
-    //client_response_generator_.socket = &this->socket();
 }
 
-//returns the active client session socket
-ip::tcp::socket& ClientSession::socket()
+ClientSessionBase::~ClientSessionBase()
 {
-    return socket_;
 }
 
-void ClientSession::start()
+
+void ClientSessionBase::start()
 {
-    //Read some data from the client and invoke the callback
-    //to proccess the client request
-    socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                            boost::bind(&ClientSession::handle_read, this,
-                            boost::asio::placeholders::error,
-                            boost::asio::placeholders::bytes_transferred));
 }
 
-void ClientSession::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
+void ClientSessionBase::async_read_some(std::vector<char> &buffer)
+{
+}
+
+void ClientSessionBase::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
 {
     if (!error)
     {
@@ -50,6 +44,8 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
                                    "Hello");
                                    */
 
+
+
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
         if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
@@ -57,30 +53,31 @@ void ClientSession::handle_read(const boost::system::error_code& error, size_t b
             //and generate a response to send it to the client
             process_client_request();
 
+
+
             /*
             //benchmarking
-            boost::asio::async_write(socket_,
-                                     boost::asio::buffer(respstr.data(), respstr.size()),
-                                     boost::bind(&ClientSession::handle_write, this,
-                                     boost::asio::placeholders::error));
-                                     */
+            client_request_.response.current_state = ClientResponse::state::single_send;
+            auto vect = std::vector<char>(respstr.begin(), respstr.end());
+            async_write(vect);
+            */
+
+
 
         } else {
-            socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                    boost::bind(&ClientSession::handle_read, this,
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred));
+            async_read_some(client_request_parser_.data_);
         }
     } else {
         //error on read. Usually this means that the client disconnected, so
         //i destroy the client session object
+        //TODO: not imortant now, but I have to figure out what to do with the error
         //std::cout << "error num:" << error.value() << ", error desc:" << error.message() << std::endl;
         delete this;
     }
-} //void ClientSession::handle_read
+} //void ClientSessionBase::handle_read
 
 
-void ClientSession::process_client_request()
+void ClientSessionBase::process_client_request()
 {
     //as fast as possible i have to check if the requested file
     //exist in the cache. This way the latency is reduced to the minimum for
@@ -142,7 +139,7 @@ void ClientSession::process_client_request()
 
 }
 
-bool ClientSession::add_to_cache_if_fits(QFile &file_io){
+bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
     //elegxw ean to megethos tou arxeiou epitrepetai na mpei stin cache
     if (file_io.size() <= rocket::cache.max_file_size){
         //elegxw ean to neo arxeio epitrepetai na mpei stin cache
@@ -157,16 +154,18 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
 
             //enimerwnw to yparxon megethos tis cache
             rocket::cache.cache_current_size = cache_size_with_new_file;
-            std::string mime_ = mime_db_.mimeTypeForFile(client_request_.uri).name().toStdString();
+
+            std::string mime_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri)).name().toStdString();
 
             QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
-            std::string modified_date_ = (qfile_info.lastModified().toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT").toStdString(); //TODO: formating a QDateTime is very slow.
+            //TODO: formating a QDateTime is very slow.
+            std::string modified_date_ = rocket::en_us_locale.toString(qfile_info.lastModified(), "ddd, dd MMM yyyy hh:mm:ss 'GMT'").toStdString();
             CacheContent cache_content(response_body_vect,
                                        mime_,
                                        modified_date_,
                                        etag_
-                                       );//TODO: na ylopoiisw diki mou function gia lipsi mime. einai ligo argi afti tou Qt
+                                       );//TODO: I should implement my own implementation of getting the mime type based on a mime file located at the folder where the server.config is
 
 
             //kataxwrw to file stin cache kai lamvanw referense pros afto
@@ -186,11 +185,19 @@ bool ClientSession::add_to_cache_if_fits(QFile &file_io){
     return false; //to arxeio den epitrepetai na mpei stin cache
 }
 
+void ClientSessionBase::async_write(std::vector<boost::asio::const_buffer> &buffers)
+{
+}
 
-void ClientSession::send_file_from_cache(){
+void ClientSessionBase::async_write(std::vector<char> &buffer)
+{
+}
 
+
+void ClientSessionBase::send_file_from_cache(){
     if (client_request_.is_range_request == false){
         //apostelw prwta ta headers
+        /*
         client_request_.response.header =
                 HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_ +
                 rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time) + //get the current datetime as a string and store the current datetime as a time_t value in the last_access_time field.
@@ -203,16 +210,29 @@ void ClientSession::send_file_from_cache(){
                 HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_ +
                 client_request_.cache_iterator->second.etag +
                 HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE;
+                */
+                client_request_.response.header.clear();
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+                rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time)).append(
+                HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_).append(
+                client_request_.cache_iterator->second.mime_type).append(
+                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+                client_request_.cache_iterator->second.get_data_size_as_string()).append(
+                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+                client_request_.cache_iterator->second.last_modified).append(
+                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+                client_request_.cache_iterator->second.etag).append(
+                HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE);
 
         std::vector<boost::asio::const_buffer> buffers;
-        buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
-        buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+        buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
+        buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
 
         client_request_.response.current_state = ClientResponse::state::single_send;
-        boost::asio::async_write(socket_,
-                                 buffers,
-                                 boost::bind(&ClientSession::handle_write, this,
-                                 boost::asio::placeholders::error));
+
+        async_write(buffers);
+
     } else {
         unsigned long long int range_size = (client_request_.range_until_byte - client_request_.range_from_byte) + 1;
         //apostelw prwta ta headers
@@ -226,19 +246,17 @@ void ClientSession::send_file_from_cache(){
         client_request_.response.header = response_header.toStdString();
 
         std::vector<boost::asio::const_buffer> buffers;
-        buffers.push_back(boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()));
-        buffers.push_back(boost::asio::buffer(client_request_.cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
+        buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
+        buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
 
         client_request_.response.current_state = ClientResponse::state::single_send;
-        boost::asio::async_write(socket_,
-                                 buffers,
-                                 boost::bind(&ClientSession::handle_write, this,
-                                 boost::asio::placeholders::error));
+
+        async_write(buffers);
     }
 }
 
 //TOTO: na vrw taxytero tropo wste na mi xreiazetai metatropi apo to qstring _200_OK sto str::string response_header_str
-void ClientSession::read_and_send_requested_file(QFile &file_io){
+void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
     size_t file_size = file_io.size();//to krataw edw mipws kai allaksei to size kai exei allo megethos to response vector
 
     //elegxw ean to arxeio tha apostalei me ti mia i se tmimata
@@ -246,11 +264,11 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
     size_t total_response_size = 0;
     //std::vector<char> response;
     client_request_.response.data.clear();
-    if (remaining_file_size <= FILE_CHUNK_SIZE){
+    if (remaining_file_size <= rocket::FILE_CHUNK_SIZE){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -275,36 +293,33 @@ void ClientSession::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = mime_db_.mimeTypeForFile(client_request_.uri);//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
                         ).toStdString();
 
-            total_response_size =  FILE_CHUNK_SIZE + response_header_str.size();
+            total_response_size =  rocket::FILE_CHUNK_SIZE + response_header_str.size();
             client_request_.response.data.reserve(total_response_size);
             client_request_.response.data.insert(client_request_.response.data.end(), response_header_str.begin(), response_header_str.end());
             client_request_.response.data.resize(total_response_size);
 
-            file_io.read(client_request_.response.data.data() + response_header_str.size(), FILE_CHUNK_SIZE);
+            file_io.read(client_request_.response.data.data() + response_header_str.size(), rocket::FILE_CHUNK_SIZE);
         } else {
             //apostoli endiamesou tmimatos
-            total_response_size =  FILE_CHUNK_SIZE;
+            total_response_size =  rocket::FILE_CHUNK_SIZE;
             client_request_.response.data.resize(total_response_size);
             file_io.seek(client_request_.response.bytes_of_file_sent);
-            file_io.read(client_request_.response.data.data(), FILE_CHUNK_SIZE);
+            file_io.read(client_request_.response.data.data(), rocket::FILE_CHUNK_SIZE);
         }
         client_request_.response.current_state = ClientResponse::state::chunk_send;
     }//if file_size chunck check
 
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.data.data(), total_response_size),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+    async_write(client_request_.response.data);
 }
 
 //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
-bool ClientSession::try_get_request_uri_resource(QFile &file_io){
+bool ClientSessionBase::try_get_request_uri_resource(QFile &file_io){
     //prospathw na anoiksw to arxeio pou zitithike
     file_io.setFileName(client_request_.response.absolute_hostname_and_requested_path);
     if (file_io.open(QFileDevice::ReadOnly) == false) {
@@ -318,7 +333,7 @@ bool ClientSession::try_get_request_uri_resource(QFile &file_io){
     return true;
 }
 
-bool ClientSession::is_malicious_path(QString &path)
+bool ClientSessionBase::is_malicious_path(QString &path)
 {
     //Directory traversal attack
     //https://en.wikipedia.org/wiki/Directory_traversal_attack
@@ -330,7 +345,7 @@ bool ClientSession::is_malicious_path(QString &path)
 }
 
 //TODO: should not use wstring. Should support utf8 filenames
-bool ClientSession::try_send_directory_listing(){
+bool ClientSessionBase::try_send_directory_listing(){
     QDir directory;
     QFileInfoList list;
     std::wostringstream os;
@@ -354,16 +369,16 @@ bool ClientSession::try_send_directory_listing(){
         }else {
             url_encoded = file.fileName().replace(" ", "%20").toStdWString();
             //einai arxeio
-            os << "<br /><a href=""" << (client_request_.uri.endsWith(slash) ?
-                                             client_request_.uri.toStdWString() :
-                                             client_request_.uri.toStdWString() +  slash.toStdWString())
+            os << "<br /><a href=""" << (QString::fromStdString(client_request_.uri).endsWith(slash) ?
+                                             QString::fromStdString(client_request_.uri).toStdWString() :
+                                             QString::fromStdString(client_request_.uri).toStdWString() +  slash.toStdWString())
                                         + url_encoded << """>"
             << file.fileName().toHtmlEscaped().toStdWString() << "</a>";
         }
     }//for loop
 
-    std::wstring response_body = HTTP_Response_Templates::_DIRECTORY_LISTING_.arg(client_request_.response.absolute_hostname_and_requested_path,
-                                                                     QString::fromStdWString(os.str())).toStdWString();
+    std::string response_body = HTTP_Response_Templates::_DIRECTORY_LISTING_.arg(client_request_.response.absolute_hostname_and_requested_path,
+                                                                     QString::fromStdWString(os.str())).toStdString();
 
     //to length tou body se QString
     std::stringstream ssize_;
@@ -378,58 +393,62 @@ bool ClientSession::try_send_directory_listing(){
 
     //prosthetw sto header to body
 
-    std::vector<char> resp_vector(std::make_move_iterator(resp_header_string.begin()), std::make_move_iterator(resp_header_string.end()));
-    resp_vector.insert(resp_vector.end(), std::make_move_iterator(response_body.begin()), std::make_move_iterator(response_body.end()));
+    std::vector<char> resp_vector(resp_header_string.begin(), resp_header_string.end());
+    resp_vector.insert(resp_vector.end(), response_body.begin(), response_body.end());
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(resp_vector.data(), resp_vector.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+
+    async_write(resp_vector);
 
     return true;
 }
 
-void ClientSession::send_404_not_found_response(){
-    client_request_.response.header = QString(HTTP_Response_Templates::_404_NOT_FOUND_HEADER_.arg(
+void ClientSessionBase::send_404_not_found_response(){
+    std::string resp = QString(HTTP_Response_Templates::_404_NOT_FOUND_HEADER_.arg(
                        QString::number(HTTP_Response_Templates::_404_NOT_FOUND_BODY_.size())) %
                        HTTP_Response_Templates::_404_NOT_FOUND_BODY_).toStdString();
+    client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+
+    async_write(client_request_.response.data);
 }
 
-void ClientSession::send_400_bad_request_response(){
-    client_request_.response.header = QString(HTTP_Response_Templates::_400_BAD_REQUEST_HEADER_.arg(
+void ClientSessionBase::send_400_bad_request_response(){
+    std::string resp = QString(HTTP_Response_Templates::_400_BAD_REQUEST_HEADER_.arg(
                        QString::number(HTTP_Response_Templates::_400_BAD_REQUEST_BODY_.size())) %
                        HTTP_Response_Templates::_400_BAD_REQUEST_BODY_).toStdString();
+    client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
 
     client_request_.response.current_state = ClientResponse::state::single_send;
-    boost::asio::async_write(socket_,
-                             boost::asio::buffer(client_request_.response.header.data(), client_request_.response.header.size()),
-                             boost::bind(&ClientSession::handle_write, this,
-                             boost::asio::placeholders::error));
+
+    async_write(client_request_.response.data);
 }
 
+void ClientSessionBase::close_socket()
+{
+}
+
+
 //
-void ClientSession::handle_write(const boost::system::error_code& error)
+void ClientSessionBase::handle_write(const boost::system::error_code& error)
 {
     if (!error){
         if (client_request_.response.current_state == ClientResponse::state::single_send){
             client_request_.response.current_state = ClientResponse::state::begin;
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
-            socket_.async_read_some(boost::asio::buffer(client_request_parser_.data_.data(), REQUEST_BUFFER_SIZE),
-                                    boost::bind(&ClientSession::handle_read, this,
-                                    boost::asio::placeholders::error,
-                                    boost::asio::placeholders::bytes_transferred));
+            if (client_request_.connection == http_connection::keep_alive){
+                async_read_some(client_request_parser_.data_);
+            }else {
+                //based on the headers of the client request we should close the connection
+                close_socket();
+                delete this;
+            }
 
         } else if (client_request_.response.current_state == ClientResponse::state::chunk_send){
             //to arxeio prepei na apostalei se tmimata opote sinexizw tin apostoli apo ekei pou meiname
-            client_request_.response.bytes_of_file_sent += FILE_CHUNK_SIZE;
+            client_request_.response.bytes_of_file_sent += rocket::FILE_CHUNK_SIZE;
             QFile file_io (client_request_.response.absolute_hostname_and_requested_path);
             file_io.open(QFileDevice::ReadOnly);
             read_and_send_requested_file(file_io);
@@ -438,5 +457,5 @@ void ClientSession::handle_write(const boost::system::error_code& error)
     } else {
         delete this;
     }
-}//void ClientSession::handle_write
+}//void ClientSessionBase::handle_write
 

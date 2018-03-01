@@ -2,5 +2,6 @@
 
 ServerConfigVirtualHostPortInfo::ServerConfigVirtualHostPortInfo(io_service &io_service__, short port)
 {
-    asio_server = new AsioServer(io_service__, port);
+    //TODO: should check this line bellow. Maybe it leaks memory
+    asio_server = new AsioServerBase(io_service__, port);
 }

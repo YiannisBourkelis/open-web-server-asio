@@ -3,10 +3,15 @@
 #include "server_config_json_parser.h"
 #include "server_config.h"
 #include <ctime>
+#include <QLocale>
 
 //public statics
 boost::asio::io_service rocket::io_service;
 Cache rocket::cache(rocket::io_service);
+QLocale rocket::en_us_locale;
+const QMimeDatabase rocket::mime_db_;
+const int rocket::FILE_CHUNK_SIZE;
+const int rocket::REQUEST_BUFFER_SIZE;
 
 //private statics
 std::chrono::time_point<std::chrono::high_resolution_clock> rocket::gmt_date_time_last_;
@@ -21,6 +26,15 @@ rocket::rocket()
 
 void rocket::takeoff(QCoreApplication *qcore_aplication)
 {
+    //required to set the locale to "C", to get
+    //locale independant date/time formats in strftime formating
+    setlocale (LC_ALL,"C");
+
+    //also QDate formating allways get the system locale to
+    //format dates, so I create an en_US locale to allways have
+    //the same date format
+    rocket::en_us_locale = QLocale(QLocale::English, QLocale::UnitedStates);
+
     //load the server config file.
     //This file contains all the server settings regarding
     //virtual hosts, index pages, cache size etc.
@@ -51,31 +65,13 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
         time_now = std::time(nullptr);
         tm * tm_ = gmtime(&time_now);
         char char_time[29];
-        strftime(char_time, 29, "%a, %d %b %Y %T GMT", tm_);
+        strftime(char_time, 30, "%a, %d %b %Y %T GMT", tm_);
         std::string string_time(char_time,29);
         gmt_date_time_ = string_time;
         gmt_date_time_last_ = std::chrono::high_resolution_clock::now();
     }
     return gmt_date_time_;
 }
-/*
-const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
-{
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::high_resolution_clock::now() - gmt_date_time_last_).count() > 1000)
-    {
-        //get and format the date and time only if 1sec from the last time has passed.
-        time_now = std::time(nullptr);
-        std::stringstream ss_time;
-        ss_time << std::put_time(std::gmtime(&time_now), "%a, %d %b %Y %T GMT"); //e.g.: Sat, 20 Jan 2018 09:34:52 GMT
-        std::string string_time(ss_time.str());
-        gmt_date_time_ = string_time;
-        //gmt_date_time_ = QDateTime::currentDateTimeUtc().toString("ddd, dd MMM yyyy hh:mm:ss").toStdString() + " GMT"; //slow
-        gmt_date_time_last_ = std::chrono::high_resolution_clock::now();
-    }
-    return gmt_date_time_;
-}
-*/
 
 const std::string rocket::get_next_etag()
 {

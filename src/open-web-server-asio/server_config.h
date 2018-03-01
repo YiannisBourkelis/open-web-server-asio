@@ -31,7 +31,7 @@
 #include "client_request.h"
 #include "server_config_virtualhost_portinfo.h"
 #include <boost/asio.hpp>
-#include "asio_server.h"
+#include "asio_server_base.h"
 
 class ServerConfig
 {
@@ -46,7 +46,7 @@ public:
 
     //contains the ports required to listen for incomming connections
     //static std::unordered_map<short, ServerConfigVirtualHostPortInfo> server_open_ports;
-    static std::unordered_map<short, AsioServer*> server_open_ports;
+    static std::unordered_map<short, AsioServerBase*> server_open_ports;
 
     static ServerConfigParserBase *server_config_parser;
     static QString application_path; //the path from the web server executable runs
@@ -56,7 +56,6 @@ public:
     static bool parse_config_file(QString filename);
     static bool is_valid_requested_hostname(ClientRequest &client_request);
     static bool index_exists(ClientRequest &client_request, QFile & file_io);
-    //static AsioServer create_asio_server(boost::asio::io_service &io_service, short port);
     static void initialize();
 };
 

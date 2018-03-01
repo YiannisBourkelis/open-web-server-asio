@@ -10,11 +10,21 @@
         "server_name": ["localhost", "www.localhost"],
 
         "listen" : [
-          {"port" : 12343}
+          {"port" : 12343},
+          {"port" : 12345},
+          {"port" : 12346}
         ],
 
         "document_root" : "/Users/yiannis/www/localhost/public_html",
-        "directory_listing" : true
+        "directory_listing" : true,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "uri" : [
+          {"file_extension" : "php"},
+          {"proxy_pass" : "http://localhost:5000"}
+        ]
       }
     },
 
@@ -23,7 +33,11 @@
         "server_name": ["*"],
 
         "listen" : [
-          {"port" : 12344}
+          {"port" : 12344,
+            "encryption" : true,
+            "ssl_certificate" : "/path/to/certificate.crt",
+            "ssl_protocols" : ["TLSv1.1","TLSv1.2"]
+          }
         ],
 
         "document_root" : "/Users/yiannis/www/localhost/public_html",
