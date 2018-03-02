@@ -32,7 +32,7 @@ void ClientSessionEncrypted::handle_handshake(const boost::system::error_code& e
 {
   if (!error)
   {
-      async_read_some(client_request_parser_.data_);
+      async_read_some(client_request_.data_);
   }
   else
   {

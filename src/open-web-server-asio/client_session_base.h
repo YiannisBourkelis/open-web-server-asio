@@ -12,7 +12,6 @@
 #include <QMimeDatabase>
 
 #include "client_request.h"
-#include "client_request_parser.h"
 #include "client_response.h"
 
 using namespace boost::asio;
@@ -31,15 +30,16 @@ public:
     virtual void close_socket();
 
 protected:
-    ClientRequestParser client_request_parser_;
+    //variables
+    ClientRequest client_request_;
 
+    //methods
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
     void handle_write(const boost::system::error_code &error);
 
 private:
     //variables
     boost::asio::io_service &io_service_;
-    ClientRequest client_request_;
 
 
     //methods

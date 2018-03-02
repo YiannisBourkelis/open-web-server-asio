@@ -7,6 +7,8 @@
 #include "cache_content.h"
 #include <string>
 #include "vector"
+#include <QByteArray>
+#include "parser_enums.h"
 
 enum class http_protocol_version {
     HTTP_2_0,
@@ -50,6 +52,15 @@ public:
     std::unordered_map<CacheKey, CacheContent>::iterator cache_iterator;
 
     std::string hostname_and_uri;//ypologizetai otan ginei parse to uri kai to hostname
+
+    // parser specific
+    const int REQUEST_BUFFER_SIZE = 1024;
+    std::vector<char> crlf_crlf {'\r', '\n', '\r', '\n'};
+    std::vector<char> data_;
+    QByteArray previous_request_data_;
+    static int parse(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request);
+    bool proccess_new_data(size_t bytes_transferred, ClientRequest &client_request);
+
 private:
 };
 

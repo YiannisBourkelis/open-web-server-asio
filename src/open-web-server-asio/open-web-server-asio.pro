@@ -20,7 +20,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp \
     rocket.cpp \
     client_request.cpp \
-    client_request_parser.cpp \
     client_response.cpp \
     server_config.cpp \
     server_config_virtualhost.cpp \
@@ -70,7 +69,6 @@ linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
 HEADERS += \
     rocket.h \
     client_request.h \
-    client_request_parser.h \
     client_response.h \
     server_config.h \
     server_config_virtualhost.h \
