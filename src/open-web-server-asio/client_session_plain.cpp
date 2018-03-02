@@ -24,7 +24,7 @@ void ClientSessionPlain::start()
 {
     //Read some data from the client and invoke the callback
     //to proccess the client request
-    async_read_some(client_request_.data_);
+    async_read_some(client_request_.data);
 }
 
 void ClientSessionPlain::async_read_some(std::vector<char> &buffer)

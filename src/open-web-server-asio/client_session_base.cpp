@@ -29,6 +29,7 @@ void ClientSessionBase::start()
 
 void ClientSessionBase::async_read_some(std::vector<char> &buffer)
 {
+    Q_UNUSED(buffer);
 }
 
 void ClientSessionBase::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
@@ -52,7 +53,7 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
 
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
-        if (client_request_.proccess_new_data(bytes_transferred, client_request_)){
+        if (client_request_.parse(client_request_, bytes_transferred) != http_parser_result::fail){
             //ok, we have a complete client request. now lets process this request
             //and generate a response to send it to the client
             process_client_request();
@@ -69,7 +70,7 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
 
 
         } else {
-            async_read_some(client_request_.data_);
+            async_read_some(client_request_.data);
         }
     } else {
         //error on read. Usually this means that the client disconnected, so
@@ -234,10 +235,12 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
 
 void ClientSessionBase::async_write(std::vector<boost::asio::const_buffer> &buffers)
 {
+    Q_UNUSED(buffers);
 }
 
 void ClientSessionBase::async_write(std::vector<char> &buffer)
 {
+    Q_UNUSED(buffer);
 }
 
 
@@ -486,7 +489,7 @@ void ClientSessionBase::handle_write(const boost::system::error_code& error)
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
             if (client_request_.connection == http_connection::keep_alive){
-                async_read_some(client_request_.data_);
+                async_read_some(client_request_.data);
             }else {
                 //based on the headers of the client request we should close the connection
                 close_socket();

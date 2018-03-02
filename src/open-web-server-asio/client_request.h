@@ -7,7 +7,6 @@
 #include "cache_content.h"
 #include <string>
 #include "vector"
-#include <QByteArray>
 #include "parser_enums.h"
 
 enum class http_protocol_version {
@@ -40,7 +39,7 @@ public:
     std::string hostname;
     http_method method;
     http_protocol_version http_protocol_ver;
-    http_connection connection;
+    http_connection connection = http_connection::unknown;
 
     bool is_range_request;
     unsigned long long int range_from_byte;
@@ -55,12 +54,10 @@ public:
 
     // parser specific
     const int REQUEST_BUFFER_SIZE = 1024;
-    std::vector<char> crlf_crlf {'\r', '\n', '\r', '\n'};
-    std::vector<char> data_;
-    QByteArray previous_request_data_;
-    static int parse(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request);
-    bool proccess_new_data(size_t bytes_transferred, ClientRequest &client_request);
-
+    std::vector<char> data;
+    http_parser_state parser_current_state = start_state;
+    size_t parser_current_state_index = 0;
+    static http_parser_result parse(ClientRequest &cr, size_t bytes_transferred);
 private:
 };
 
