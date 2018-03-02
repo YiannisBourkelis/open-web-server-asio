@@ -21,6 +21,12 @@ enum class http_connection {
     close
 };
 
+enum class http_method {
+    GET,
+    POST,
+    HEAD
+};
+
 class ClientRequest
 {
 public:
@@ -28,7 +34,9 @@ public:
 
     std::vector<char> raw_request;
     std::string uri;
+    std::string query_string;
     std::string hostname;
+    http_method method;
     http_protocol_version http_protocol_ver;
     http_connection connection;
 

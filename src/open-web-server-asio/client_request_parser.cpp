@@ -33,6 +33,9 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
     http_parser_state current_state = start_state;
     client_request.connection = http_connection::unknown;
 
+    //std::string req__(data.begin(), data.begin()+bytes_transferred);
+    //std::cout << req__ << "\r\n";
+
     for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
 
         if (current_state == start_state)
@@ -44,34 +47,60 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
                     data[index_char + 3] == 32 // space
                     ) {
                 index_char += 3;
-                current_state = state_GET;//"G"
+                current_state = state_METHOD;
+                client_request.method = http_method::GET;
+            } else if (data[index_char] == 'P' &&
+                       ((index_char + 5) < bytes_transferred) &&
+                       data[index_char + 1] == 'O' &&
+                       data[index_char + 2] == 'S' &&
+                       data[index_char + 3] == 'T' &&
+                       data[index_char + 4] == ' ' // space
+                       ) {
+                   index_char += 4;
+                   current_state = state_METHOD;
+                   client_request.method = http_method::POST;
             }
             continue;
         }
 
-        if (current_state == state_GET)
+        if (current_state == state_METHOD)
         {
             if(data[index_char] != 32) {// not space
                //start of GET/POST/HEAD URI
                 client_request.parser_content_begin_index = index_char;
-                current_state = state_GET_URI_CONTENT;
+                current_state = state_METHOD_URI_CONTENT;
                 continue;
             }
             continue;
         }
 
-        if (current_state == state_GET_URI_CONTENT) {
+        if (current_state == state_METHOD_URI_CONTENT) {
             if (data[index_char] == 32) {// space after get uri
                 client_request.uri = std::string(data.begin() + client_request.parser_content_begin_index,
                                                  data.begin() + index_char);
-                current_state = state_GET_URI_CONTENT_END;
+                current_state = state_METHOD_URI_CONTENT_END;
                 continue;
+            } else if (data[index_char] == '?') {//begin of query string
+                client_request.uri = std::string(data.begin() + client_request.parser_content_begin_index,
+                                                 data.begin() + index_char);
+                client_request.parser_content_begin_index = index_char + 1;
+                current_state = state_METHOD_URI_QUERYSTRING_CONTENT;
+                continue;
+            }
+            continue;
+        }
+
+        if (current_state == state_METHOD_URI_QUERYSTRING_CONTENT) {
+            if (data[index_char] == ' ') {// space after get uri
+                client_request.query_string = std::string(data.begin() + client_request.parser_content_begin_index,
+                                                 data.begin() + index_char);
+                current_state = state_METHOD_URI_CONTENT_END;
             }
             continue;
         }
 
         //GET / HTTP/1.1
-        if (current_state == state_GET_URI_CONTENT_END){
+        if (current_state == state_METHOD_URI_CONTENT_END){
             // characters after the space after the uri means we have the http version
             if(data[index_char] == 72 && // H
                     ((index_char + 8) < bytes_transferred) &&
@@ -111,7 +140,7 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
             //    std::cout << "hh";
             //}
 
-            //check for Connection: keep-alive. Actually I only check for eep live
+            //check for Connection: keep-alive. Actually I only check for keep live
             if (data[index_char] == 67 && // C
                     ((index_char + 11) < bytes_transferred) &&
                     data[index_char + 1] == 111 && // o
@@ -207,182 +236,6 @@ int ClientRequestParser::parse(std::vector<char> &data, size_t bytes_transferred
     return 0;
 }
 
-int ClientRequestParser::parse2(std::vector<char> &data, size_t bytes_transferred, ClientRequest &client_request){
-
-    http_parser_state current_state = start_state;
-
-    for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
-
-        if (current_state == start_state)
-        {
-            if(data.at(index_char) == 71 && // G
-                    ((index_char + 4) < bytes_transferred) &&
-                    data.at(index_char + 1) == 69 && // E
-                    data.at(index_char + 2) == 84 && // T
-                    data.at(index_char + 3) == 32 // space
-                    ) {
-                index_char += 3;
-                current_state = state_GET;//"G"
-            }
-            continue;
-        }
-
-        if (current_state == state_GET)
-        {
-            if(data.at(index_char) != 32) {// not space
-               //start of GET/POST/HEAD URI
-                client_request.parser_content_begin_index = index_char;
-                current_state =state_GET_URI_CONTENT;
-                continue;
-            }
-            continue;
-        }
-
-        if (current_state == state_GET_URI_CONTENT) {
-            if (data.at(index_char) == 32) {// space after get uri
-                //client_request.uri_ref = QStringRef(&client_request.raw_request, client_request.parser_content_begin_index, index_char - client_request.parser_content_begin_index);
-                client_request.uri = std::string(data.begin() + client_request.parser_content_begin_index,
-                                                 data.begin() + index_char);
-                current_state = state_GET_URI_CONTENT_END;
-                continue;
-            }
-            continue;
-        }
-
-        //GET / HTTP/1.1
-        if (current_state == state_GET_URI_CONTENT_END){
-            // characters after the space after the uri means we have the http version
-            if(data.at(index_char) == 72 && // H
-                    ((index_char + 8) < bytes_transferred) &&
-                    data.at(index_char + 1) == 84 && // T
-                    data.at(index_char + 2) == 84 && // T
-                    data.at(index_char + 3) == 80 && // P
-                    data.at(index_char + 4) == 47 // /
-                    ) {
-                //check verdion number
-                if (data.at(index_char + 5) == 49 && data.at(index_char + 7) == 49){
-                    client_request.http_protocol_ver = http_protocol_version::HTTP_1_1;
-                } else if (data.at(index_char + 5) == 49 && data.at(index_char + 7) == 48){
-                    client_request.http_protocol_ver = http_protocol_version::HTTP_1_0;
-                }
-                index_char += 7;
-                current_state = state_HTTP_VERSION;
-            }
-            continue;
-        }
-
-        if (current_state == state_CRLF)
-        {
-            //check for Host: header
-            if (data.at(index_char) == 72 &&
-                    ((index_char + 6) < bytes_transferred) &&
-                    data.at(index_char + 1) == 111 &&
-                    data.at(index_char + 2) == 115 && //s
-                    data.at(index_char + 3) == 116 && //t
-                    data.at(index_char + 4) == 58) { //:
-                index_char += 5;
-                current_state = state_HOST;
-                continue;
-            }
-
-            if (data.at(index_char) == 67 ){ // C
-                std::cout << "hh";
-            }
-
-            //check for Connection: keep-alive. Actually I only check for eep live
-            if (data.at(index_char) == 67 && // C
-                    ((index_char + 11) < bytes_transferred) &&
-                    data.at(index_char + 1) == 111 && // o
-                    data.at(index_char + 2) == 110 && // n
-                    data.at(index_char + 3) == 110 && // n
-                    data.at(index_char + 4) == 101 && //e
-                    data.at(index_char + 5) == 99 && // c
-                    data.at(index_char + 6) == 116 && // t
-                    data.at(index_char + 7) == 105 && // i
-                    data.at(index_char + 8) == 111 && // o
-                    data.at(index_char + 9) == 110 && // n
-                    data.at(index_char + 10) == 58 ) { // :
-                index_char += 10;
-                current_state = state_CONNECTION;
-                continue;
-            }
-
-            //check if we are here because no known header that we are
-            //inderested for exist.
-            if (data[index_char] != '\r'){
-                current_state = state_UNKNOWN_HEADER;
-            } else if (data[index_char] == '\r' &&
-                       ((index_char + 1) < bytes_transferred) &&
-                       data[index_char + 1] == '\n'){
-               index_char += 1;
-               current_state = state_CRLF_x2;
-            } else {
-                std::cout << "parse error!";
-                //TODO: the request is malformed. I should return an error
-            }
-            continue;
-
-        }
-
-        if (current_state == state_HOST)
-        {
-            if (data.at(index_char) != 32){ // space
-                client_request.parser_content_begin_index = index_char;
-                current_state = state_HOST_CONTENT;
-            }
-            continue;
-        }
-
-        if (current_state == state_HOST_CONTENT)
-        {
-            if (data.at(index_char) == 10){ // \n
-                client_request.hostname = std::string(data.begin() + client_request.parser_content_begin_index,
-                                                      data.begin() + index_char - 1);
-                current_state = state_HOST_CONTENT_END;
-
-            }
-            continue;
-        }
-
-        if (current_state == state_CONNECTION){
-            if (data.at(index_char) == 101) { // e. If it has an e it means it is keep-alive
-                client_request.connection = http_connection::keep_alive;
-                current_state = state_CONNECTION_KEEP_ALIVE_OR_CLOSE;
-            } else if (data.at(index_char) == 111) { // o. If it has o it means it is close
-                client_request.connection = http_connection::close;
-                current_state = state_CONNECTION_KEEP_ALIVE_OR_CLOSE;
-            }
-            continue;
-        }
-
-        if (data[index_char] == '\r' &&
-                ((index_char + 2) < bytes_transferred) &&
-                data[index_char + 1] == '\n') {
-                index_char += 1;
-                current_state = state_CRLF;
-            continue;
-        }
-
-    }
-
-
-    //enonw to hostname me to uri
-    client_request.hostname_and_uri = client_request.hostname + client_request.uri;
-    client_request.is_range_request = false;
-
-    //set the connection property to keep allive or close based on the request headers
-    if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_1){
-        client_request.connection = http_connection::keep_alive;
-    }else if (client_request.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
-              client_request.http_protocol_ver == http_protocol_version::HTTP_0_9){
-        client_request.connection = http_connection::close;
-    } else {
-        client_request.connection = http_connection::unknown;
-    }
-
-    return 0;
-}
-
 bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequest &client_request)
 {
     //usually a client http request is less than 1024 bytes, so it fits
@@ -405,8 +258,8 @@ bool ClientRequestParser::proccess_new_data(size_t bytes_transferred, ClientRequ
         auto first_index_of_crlfcrlf = std::distance(previous_request_data_.begin(), crlf_it);
         if (first_index_of_crlfcrlf > -1){
             parse(data_, bytes_transferred, client_request);
-            return true;
             previous_request_data_.clear();
+            return true;
         } else {
             return false;
         }

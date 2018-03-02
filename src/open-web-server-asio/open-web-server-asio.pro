@@ -37,7 +37,8 @@ SOURCES += main.cpp \
     client_session_encrypted.cpp \
     asio_server_base.cpp \
     asio_server_plain.cpp \
-    asio_server_encrypted.cpp
+    asio_server_encrypted.cpp \
+    cgi_service.cpp
 
 # boost libraries build guide
 # - download boost
@@ -87,7 +88,10 @@ HEADERS += \
     client_session_encrypted.h \
     asio_server_base.h \
     asio_server_plain.h \
-    asio_server_encrypted.h
+    asio_server_encrypted.h \
+    cgi_service.h \
+    json.hpp \
+    parser_enums.h
 
 
 #***************************************************************

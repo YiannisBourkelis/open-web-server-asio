@@ -45,7 +45,7 @@ private:
     //methods
     void process_client_request();
     void read_and_send_requested_file(QFile &file_io);
-    bool try_get_request_uri_resource(QFile &file_io);
+    bool try_open_request_uri_resource(QFile &file_io);
     static bool is_malicious_path(QString &path);
     bool add_to_cache_if_fits(QFile &file_io);
     void send_file_from_cache();

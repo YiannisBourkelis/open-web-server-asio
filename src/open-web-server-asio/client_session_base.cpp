@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QLocale>
 #include "rocket.h"
+#include "cgi_service.h"
 
 //constructor
 ClientSessionBase::ClientSessionBase(boost::asio::io_service& io_service) :
@@ -44,6 +45,9 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
                                    "Hello");
                                    */
 
+        //std::string req__(client_request_parser_.data_.begin(),
+        //                  client_request_parser_.data_.end());
+        //std::cout << req__ << "\r\n";
 
 
         //first check to see if the data arrived from the client forms a complete
@@ -106,7 +110,7 @@ void ClientSessionBase::process_client_request()
             return;
         }
 
-        if (try_get_request_uri_resource(file_io) == false){
+        if (try_open_request_uri_resource(file_io) == false){
             //the requested uri was not found.
             if (client_request_.response.server_config_map_it->second.allow_directory_listing == false){
                 //if directory listing is not allowed (default) then send a 404 response
@@ -123,9 +127,52 @@ void ClientSessionBase::process_client_request()
             return;
         }
 
+        //ok the requested uri exists, so I check the config
+        //if we should serve it using cgi
+        if (file_io.fileName().endsWith("php")){
+            CgiService::execute_(client_request_);
+
+
+            std::time_t t;
+            client_request_.response.header.clear();
+            client_request_.response.header.append(
+            HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+            rocket::get_gmt_date_time(t)).append(
+            HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+            std::to_string(client_request_.response.body_in.size())).append(
+            HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+            rocket::get_gmt_date_time(t)).append(
+            HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+            "no-etag").append(
+            "\"\r\n");
+
+            std::vector<char> head_vect(client_request_.response.header.begin(),
+                                        client_request_.response.header.end());
+
+            std::cout << client_request_.response.header << std::endl;
+
+            client_request_.response.data.clear();
+            client_request_.response.data.insert(client_request_.response.data.end(),
+                                                 head_vect.begin(),
+                                                 head_vect.end());
+
+            client_request_.response.data.insert(client_request_.response.data.end(),
+                                                 client_request_.response.header_in.begin(),
+                                                 client_request_.response.header_in.end());
+
+            client_request_.response.data.insert(client_request_.response.data.end(),
+                                                 client_request_.response.body_in.begin(),
+                                                 client_request_.response.body_in.end());
+
+
+
+            //client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
+            client_request_.response.current_state = ClientResponse::state::single_send;
+            async_write(client_request_.response.data);
+        }
         //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
         //cache, ean xwraei, kai sti synexeia tha to steilw ston client poy to zitise
-        if (add_to_cache_if_fits(file_io)){
+        else if (add_to_cache_if_fits(file_io)){
             //ok, to arxeio mpike stin cache opote to apostelw ston client
             send_file_from_cache();
             return;
@@ -319,7 +366,7 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
 }
 
 //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
-bool ClientSessionBase::try_get_request_uri_resource(QFile &file_io){
+bool ClientSessionBase::try_open_request_uri_resource(QFile &file_io){
     //prospathw na anoiksw to arxeio pou zitithike
     file_io.setFileName(client_request_.response.absolute_hostname_and_requested_path);
     if (file_io.open(QFileDevice::ReadOnly) == false) {

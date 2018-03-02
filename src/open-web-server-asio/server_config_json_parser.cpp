@@ -64,6 +64,13 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
     for (auto http_setting : http_settings_){
         auto vhost_hostnames = http_setting["virtual_host"]["server_name"];
 
+        auto location_array = http_setting["virtual_host"]["location"];
+        bool cgi = false;
+        if (location_array.is_array()){
+            cgi = location_array[0]["cgi"].is_string();
+        }
+
+        //loop for every listen setting inside the virtual_host parent
         for (auto listen__ : http_setting["virtual_host"]["listen"]){
             for (size_t vhost_hostnames_idx = 0; vhost_hostnames_idx < vhost_hostnames.size(); vhost_hostnames_idx++){
                 bool is_encrypted_server = false;
@@ -91,6 +98,7 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                 vhost.ServerName.push_back(vhost_name);
                 vhost.DocumentRoot = QString::fromStdString(http_setting["virtual_host"]["document_root"].get<std::string>());
                 vhost.allow_directory_listing = http_setting["virtual_host"]["directory_listing"].get<bool>();
+                vhost.cgi = cgi;
 
                 //directory indexes
                 for (auto idx_itm : j["server"]["indexes"]){
