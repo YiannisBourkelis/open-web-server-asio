@@ -50,6 +50,13 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
         //                  client_request_parser_.data_.end());
         //std::cout << req__ << "\r\n";
 
+        //after the first request, the client_request
+        //state and some variables should come back to their default
+        //values, so that the parser could output the correct results.
+        //This technique is used for reusing the existing allocated
+        //memory for the buffer and other member variables.
+        client_request_.cleanup();
+
 
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).

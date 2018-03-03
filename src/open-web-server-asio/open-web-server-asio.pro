@@ -1,3 +1,6 @@
+#should check gcc Profile guided optimization
+#https://en.wikipedia.org/wiki/Profile-guided_optimization
+
 QT -= gui
 
 CONFIG += c++11 console

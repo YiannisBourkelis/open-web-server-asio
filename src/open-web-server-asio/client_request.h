@@ -39,6 +39,7 @@ public:
     std::string hostname;
     http_method method;
     http_protocol_version http_protocol_ver;
+    size_t content_size = 0;
     http_connection connection = http_connection::unknown;
 
     bool is_range_request;
@@ -58,6 +59,7 @@ public:
     http_parser_state parser_current_state = start_state;
     size_t parser_current_state_index = 0;
     static http_parser_result parse(ClientRequest &cr, size_t bytes_transferred);
+    void cleanup();
 private:
 };
 

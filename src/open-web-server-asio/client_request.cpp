@@ -31,7 +31,7 @@ ClientRequest::ClientRequest() : data(REQUEST_BUFFER_SIZE)
 //  headers to process and copy.
 http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transferred){
 
-    //std::string req__(data.begin(), data.begin()+bytes_transferred);
+    //std::string req__(cr.data.begin(), cr.data.begin()+bytes_transferred);
     //std::cout << req__ << "\r\n";
 
     for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
@@ -172,6 +172,18 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             } else if (cr.data[index_char] == '\r' &&
                        ((index_char + 1) < bytes_transferred) &&
                        cr.data[index_char + 1] == '\n'){
+
+               // ****** important point *********
+               // we found the \r\n\r\n
+               if (cr.content_size == 0){
+                   // end of http request
+                   // if we proccessed all bytes then
+                   // we are done
+                   if (index_char == bytes_transferred - 2){
+                       cr.parser_current_state = state_DONE;
+                       break;
+                   }
+               }
                index_char += 1;
                cr.parser_current_state = state_CRLF_x2;
                cr.parser_current_state_index = index_char;
@@ -246,4 +258,14 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
     }
 
     return http_parser_result::success;
+}
+
+void ClientRequest::cleanup()
+{
+    if (parser_current_state == state_DONE){
+        //content_size = 0;
+        connection = http_connection::unknown;
+        parser_current_state = start_state;
+        parser_current_state_index = 0;
+    }
 }

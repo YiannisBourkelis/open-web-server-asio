@@ -15,6 +15,7 @@ namespace enums {
 
         state_CRLF,
         state_CRLF_x2,
+        state_DONE,
 
         //Host: localhost:12343
         state_HOST,
