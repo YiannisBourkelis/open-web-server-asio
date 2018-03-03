@@ -35,6 +35,14 @@ void ClientSessionPlain::async_read_some(std::vector<char> &buffer)
                             boost::asio::placeholders::bytes_transferred));
 }
 
+void ClientSessionPlain::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    socket_.async_read_some(boost::asio::buffer(buffer.data() + begin_offset, max_size),
+                            boost::bind(&ClientSessionPlain::handle_read, this,
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred));
+}
+
 void ClientSessionPlain::async_write(std::vector<boost::asio::const_buffer> &buffers)
 {
     boost::asio::async_write(socket_,

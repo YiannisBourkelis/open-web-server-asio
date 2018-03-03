@@ -31,15 +31,19 @@ ClientRequest::ClientRequest() : data(REQUEST_BUFFER_SIZE)
 //  headers to process and copy.
 http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transferred){
 
-    //std::string req__(cr.data.begin(), cr.data.begin()+bytes_transferred);
-    //std::cout << req__ << "\r\n";
 
-    for (size_t index_char = 0; index_char < bytes_transferred; index_char++){
+    size_t index_char = cr.parser_current_state_index;
+    size_t total_bytes_transferred = bytes_transferred + cr.parser_previous_state_index;
+
+    std::string req__(cr.data.begin(), cr.data.begin()+total_bytes_transferred);
+    std::cout << req__ << "\r\n";
+
+    for (; index_char < total_bytes_transferred; index_char++){
 
         if (cr.parser_current_state == start_state)
         {
             if(cr.data[index_char] == 71 && // G
-                    ((index_char + 4) < bytes_transferred) &&
+                    ((index_char + 4) < total_bytes_transferred) &&
                     cr.data[index_char + 1] == 69 && // E 69
                     cr.data[index_char + 2] == 84 && // T
                     cr.data[index_char + 3] == 32 // space
@@ -49,7 +53,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                 cr.parser_current_state_index = index_char;
                 cr.method = http_method::GET;
             } else if (cr.data[index_char] == 'P' &&
-                       ((index_char + 5) < bytes_transferred) &&
+                       ((index_char + 5) < total_bytes_transferred) &&
                        cr.data[index_char + 1] == 'O' &&
                        cr.data[index_char + 2] == 'S' &&
                        cr.data[index_char + 3] == 'T' &&
@@ -107,7 +111,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
         if (cr.parser_current_state == state_METHOD_URI_CONTENT_END){
             // characters after the space after the uri means we have the http version
             if(cr.data[index_char] == 72 && // H
-                    ((index_char + 8) < bytes_transferred) &&
+                    ((index_char + 8) < total_bytes_transferred) &&
                     cr.data[index_char + 1] == 84 && // T
                     cr.data[index_char + 2] == 84 && // T
                     cr.data[index_char + 3] == 80 && // P
@@ -130,7 +134,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
         {
             //check for Host: header
             if (cr.data[index_char] == 72 &&
-                    ((index_char + 6) < bytes_transferred) &&
+                    ((index_char + 6) < total_bytes_transferred) &&
                     cr.data[index_char + 1] == 111 &&
                     cr.data[index_char + 2] == 115 && //s
                     cr.data[index_char + 3] == 116 && //t
@@ -148,7 +152,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
             //check for Connection: keep-alive. Actually I only check for keep live
             if (cr.data[index_char] == 67 && // C
-                    ((index_char + 11) < bytes_transferred) &&
+                    ((index_char + 11) < total_bytes_transferred) &&
                     cr.data[index_char + 1] == 111 && // o
                     cr.data[index_char + 2] == 110 && // n
                     cr.data[index_char + 3] == 110 && // n
@@ -161,16 +165,17 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                     cr.data[index_char + 10]== 58 ) { // :
                 index_char += 10;
                 cr.parser_current_state = state_CONNECTION;
-                cr.parser_current_state_index = index_char;
+                cr.parser_current_state_index = index_char + 1;
                 continue;
             }
 
             //check if we are here because no known header that we are
             //inderested for exist.
             if (cr.data[index_char] != '\r'){
+                cr.parser_last_known_state = cr.parser_current_state;
                 cr.parser_current_state = state_UNKNOWN_HEADER;
             } else if (cr.data[index_char] == '\r' &&
-                       ((index_char + 1) < bytes_transferred) &&
+                       ((index_char + 1) < total_bytes_transferred) &&
                        cr.data[index_char + 1] == '\n'){
 
                // ****** important point *********
@@ -179,7 +184,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                    // end of http request
                    // if we proccessed all bytes then
                    // we are done
-                   if (index_char == bytes_transferred - 2){
+                   if (index_char == total_bytes_transferred - 2){
                        cr.parser_current_state = state_DONE;
                        break;
                    }
@@ -206,13 +211,13 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
         if (cr.parser_current_state == state_HOST_CONTENT)
         {
-            if (cr.data[index_char] == 10){ // \n
+            if (cr.data[index_char] == '\r'){ //
                 cr.hostname = std::string(cr.data.begin() + cr.parser_content_begin_index,
                                                       cr.data.begin() + index_char - 1);
                 cr.parser_current_state = state_HOST_CONTENT_END;
                 cr.parser_current_state_index = index_char;
             }
-            continue;
+            //continue;
         }
 
         if (cr.parser_current_state == state_CONNECTION){
@@ -230,15 +235,33 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
 
         if (cr.data[index_char] == '\r' &&
-                ((index_char + 2) < bytes_transferred) &&
+                ((index_char + 2) < total_bytes_transferred) &&
                 cr.data[index_char + 1] == '\n') {
                 index_char += 1;
                 cr.parser_current_state = state_CRLF;
-                cr.parser_current_state_index = index_char;
+                cr.parser_current_state_index = index_char + 1;
             continue;
         }
 
     }//for loop
+
+    if (cr.parser_current_state != state_DONE){
+        if (cr.data.size() == index_char){
+            //the buffer is full but the http request is not complete
+            //so we should recieve the rest of it. We should keep
+            //the data on the existing buffer because we might need
+            //to extract some values from it while parsing, so we resize
+            //the buffer, to give it more space for the resto of the
+            //http request
+            cr.data.resize(cr.data.size() + cr.REQUEST_BUFFER_SIZE);
+            //cr.buffer_position = cr.data.size() - 1;
+            cr.parser_previous_state_index = index_char;
+            if (cr.parser_current_state == http_parser_state::state_UNKNOWN_HEADER){
+                cr.parser_current_state = cr.parser_last_known_state;
+            }
+            return http_parser_result::incomplete;
+        }
+    }
 
 
     //enonw to hostname me to uri
@@ -265,7 +288,8 @@ void ClientRequest::cleanup()
     if (parser_current_state == state_DONE){
         //content_size = 0;
         connection = http_connection::unknown;
-        parser_current_state = start_state;
         parser_current_state_index = 0;
+        parser_previous_state_index = 0;
+        //buffer_position = 0;
     }
 }

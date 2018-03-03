@@ -53,6 +53,14 @@ void ClientSessionEncrypted::async_read_some(std::vector<char> &buffer)
                             boost::asio::placeholders::bytes_transferred));
 }
 
+void ClientSessionEncrypted::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    ssl_socket_.async_read_some(boost::asio::buffer((buffer.data() + begin_offset), max_size),
+                            boost::bind(&ClientSessionEncrypted::handle_read, this,
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred));
+}
+
 void ClientSessionEncrypted::async_write(std::vector<boost::asio::const_buffer> &buffers)
 {
     boost::asio::async_write(ssl_socket_,

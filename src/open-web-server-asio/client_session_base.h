@@ -25,6 +25,7 @@ public:
     //methods
     void start();
     virtual void async_read_some(std::vector<char> &buffer);
+    virtual void async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size);
     virtual void async_write(std::vector<boost::asio::const_buffer> &buffers);
     virtual void async_write(std::vector<char> &buffer);
     virtual void close_socket();

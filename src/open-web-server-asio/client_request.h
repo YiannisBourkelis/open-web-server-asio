@@ -54,10 +54,13 @@ public:
     std::string hostname_and_uri;//ypologizetai otan ginei parse to uri kai to hostname
 
     // parser specific
-    const int REQUEST_BUFFER_SIZE = 1024;
+    const int REQUEST_BUFFER_SIZE = 10;//default 1024
     std::vector<char> data;
     http_parser_state parser_current_state = start_state;
+    http_parser_state parser_last_known_state;
     size_t parser_current_state_index = 0;
+    size_t parser_previous_state_index = 0;
+    //size_t buffer_position = 0;
     static http_parser_result parse(ClientRequest &cr, size_t bytes_transferred);
     void cleanup();
 private:

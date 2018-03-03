@@ -32,6 +32,13 @@ void ClientSessionBase::async_read_some(std::vector<char> &buffer)
     Q_UNUSED(buffer);
 }
 
+void ClientSessionBase::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    Q_UNUSED(buffer);
+    Q_UNUSED(begin_offset);
+    Q_UNUSED(max_size);
+}
+
 void ClientSessionBase::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
 {
     if (!error)
@@ -60,7 +67,8 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
 
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
-        if (client_request_.parse(client_request_, bytes_transferred) != http_parser_result::fail){
+        http_parser_result res = client_request_.parse(client_request_, bytes_transferred);
+        if (res == http_parser_result::success){
             //ok, we have a complete client request. now lets process this request
             //and generate a response to send it to the client
             process_client_request();
@@ -74,10 +82,8 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
             async_write(vect);
             */
 
-
-
-        } else {
-            async_read_some(client_request_.data);
+        } else if (res == http_parser_result::incomplete) {
+            async_read_some(client_request_.data, client_request_.parser_previous_state_index, client_request_.data.size() - client_request_.parser_previous_state_index);
         }
     } else {
         //error on read. Usually this means that the client disconnected, so

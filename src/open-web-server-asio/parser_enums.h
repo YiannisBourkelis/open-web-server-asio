@@ -48,9 +48,10 @@ namespace enums {
         state_RANGE_BYTES_EQUALS_UNTIL_END
     };
 
-    enum http_parser_result {
+    enum class http_parser_result {
         success,
-        fail
+        fail,
+        incomplete
     };
 
 }//namespace
