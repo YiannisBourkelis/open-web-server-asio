@@ -38,6 +38,8 @@ public:
     std::string query_string;
     std::string request_body;
     std::string hostname;
+    std::string cookie;
+    std::string user_agent;
     http_method method;
     http_protocol_version http_protocol_ver;
     //char http_protocol_ver_major; //0-9

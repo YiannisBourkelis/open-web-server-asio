@@ -48,6 +48,17 @@ namespace enums {
         state_CONTENT_LENGTH_COLON,
         state_CONTENT_LENGTH_CONTENT,
 
+        state_COOKIE_COLON,
+        state_COOKIE_CONTENT,
+
+        state_CONNECTION_COLON,
+        state_CONNECTION_CONTENT,
+
+        state_HEADER_U,
+        state_USER_AGENT_COLON,
+        state_USER_AGENT_CONTENT,
+
+
 
         state_DONE,
         state_CR,

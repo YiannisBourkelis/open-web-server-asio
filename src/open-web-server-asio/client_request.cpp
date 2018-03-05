@@ -238,20 +238,53 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             break;
         // **** Conn: HEADER - EXTRACT HOSTNAME *******
 
-        // **** HEADER starting with C
+        // **** HEADER starting with C ***********
+        // **** [Content-Length], [Cookie], [Connection]
         case state_HEADER_C:
             if (cr.buffer[cr.buffer_position] == ':'){
                //check for Content-Length: header
                //e.g. Content-Length: 96\r\n
-               if (cr.buffer_position - cr.parser_content_begin_index == 14){
+               size_t header_size = cr.buffer_position - cr.parser_content_begin_index;
+               if (header_size == 14){
                    //I assume it is the Content-Length: header because it starts with
                    //C and has 14 letters size and no other header is like that.
                    cr.parser_state = state_CONTENT_LENGTH_COLON;
+               } else if (header_size == 6){
+                   //Assume Cookie Header
+                   cr.parser_state = state_COOKIE_COLON;
+               } else if (header_size == 10){
+                   //Assume Connection header
+                   cr.parser_state = state_CONNECTION_COLON;
                } else {
                    cr.parser_state = state_UNKNOWN_HEADER;
                }
             }
             break;
+        // **** HEADER starting with C ***********
+
+        // **** HEADER starting with U ***********
+        // **** [User-Agent], [Upgrade]
+        case state_HEADER_U:
+            if (cr.buffer[cr.buffer_position] == ':'){
+               size_t header_size = cr.buffer_position - cr.parser_content_begin_index;
+
+               //check for User-Agent: header
+               //e.g. User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:12.0) Gecko/20100101 Firefox/12.0\r\n
+               if (header_size == 10){
+                   //I assume it is the User-Agent: header because it starts with
+                   //U and has 10 letters size and no other header is like that.
+                   cr.parser_state = state_USER_AGENT_COLON;
+               //} else if (header_size == 10){
+               //    //Assume Connection header
+               //    cr.parser_state = state_CONNECTION_COLON;
+               } else {
+                   cr.parser_state = state_UNKNOWN_HEADER;
+               }
+            }
+            break;
+        // **** HEADER starting with U ***********
+
+        // ********* Content-Length: *************
         case state_CONTENT_LENGTH_COLON:
             if (cr.buffer[cr.buffer_position] != ' '){
                 cr.parser_content_begin_index = cr.buffer_position;
@@ -279,6 +312,66 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                 cr.content_length = std::stoull(content_length_string);
             }
             break;
+         // *****************************************
+
+         // ********* Cookie: **********************
+        case state_COOKIE_COLON:
+            if (cr.buffer[cr.buffer_position] != ' '){
+                cr.parser_content_begin_index = cr.buffer_position;
+                cr.parser_state = state_COOKIE_CONTENT;
+            }
+            break;
+        case state_COOKIE_CONTENT:
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_CR;
+                cr.cookie = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+            }
+            break;
+         // ****************************************
+
+        // ********* Connection: **********************
+       case state_CONNECTION_COLON:
+           if (cr.buffer[cr.buffer_position] != ' '){
+               cr.parser_content_begin_index = cr.buffer_position;
+               cr.parser_state = state_CONNECTION_CONTENT;
+           }
+           break;
+       case state_CONNECTION_CONTENT:
+           if (cr.buffer[cr.buffer_position] == '\r'){
+               cr.parser_state = state_CR;
+               // Because the keep alive or close might begin with an upper case or lower case
+               // I am comparing only the second letter. k[e]ep-alive or c[l]ose
+               if(cr.buffer[cr.buffer_position] == 'e'){
+                   cr.connection = http_connection::keep_alive;
+               } else if (cr.buffer[cr.buffer_position] == 'o'){
+                   cr.connection = http_connection::close;
+               } else {
+                   cr.connection = http_connection::unknown;
+                   //TODO: shoould check what to do if connection if upgrade
+                   //And if it is not, if should I raise a parse error
+                   //or simply try to figure out the most appropriate connection type
+                   //e.g.: keep-alive for HTTP/1.1
+               }
+           }
+           break;
+        // ****************************************
+
+       // ********* User-Agent: **********************
+      case state_USER_AGENT_COLON:
+          if (cr.buffer[cr.buffer_position] != ' '){
+              cr.parser_content_begin_index = cr.buffer_position;
+              cr.parser_state = state_USER_AGENT_CONTENT;
+          }
+          break;
+      case state_USER_AGENT_CONTENT:
+          if (cr.buffer[cr.buffer_position] == '\r'){
+              cr.parser_state = state_CR;
+              cr.user_agent = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                   cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+          }
+          break;
+       // ****************************************
 
 
         // \\\\**** BEGIN OF EVERY HEADER *******////
@@ -295,6 +388,14 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                 cr.parser_content_begin_index = cr.buffer_position;
                 break;
             }
+
+            //User-Agent: or Upgrade
+            if (cr.buffer[cr.buffer_position] == 'U'){
+                cr.parser_state = state_HEADER_U;
+                cr.parser_content_begin_index = cr.buffer_position;
+                break;
+            }
+
 
 
             if (cr.buffer[cr.buffer_position] == '\r'){
@@ -330,15 +431,6 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             if (cr.buffer[cr.buffer_position] == '\n'){
                 cr.parser_state = state_CRLF_CRLF;
 
-                if (cr.connection == http_connection::unknown){
-                    if (cr.http_protocol_ver == http_protocol_version::HTTP_1_1){
-                        cr.connection = http_connection::keep_alive;
-                    }else if (cr.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
-                              cr.http_protocol_ver == http_protocol_version::HTTP_0_9){
-                        cr.connection = http_connection::close;
-                    }
-                }
-
                 if (cr.content_length > 0){
                     //we are at the first \r\n\r\n and we have a content-length > 0
                     //so we will start copying the request body to the query_string variable
@@ -369,6 +461,17 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
         }
         return http_parser_result::incomplete;
     } else if (cr.parser_state == state_DONE){
+        //parsing DONE!
+        //determine the connection type (keep alive or close) if there was no Connection header found
+        if (cr.connection == http_connection::unknown){
+            if (cr.http_protocol_ver == http_protocol_version::HTTP_1_1){
+                cr.connection = http_connection::keep_alive;
+            }else if (cr.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
+                      cr.http_protocol_ver == http_protocol_version::HTTP_0_9){
+                cr.connection = http_connection::close;
+            }
+        }
+        //return success so that we can begin proccessing the parsed request
         return http_parser_result::success;
     }else {
         //std::cout << "ok";
@@ -384,6 +487,8 @@ void ClientRequest::cleanup()
         //content_size = 0;
         connection = http_connection::unknown;
         hostname_and_uri.clear();
+        cookie.clear();
+        user_agent.clear();
         //parser_current_state_index = 0;
         //parser_previous_state_index = 0;
         buffer_position = 0;
