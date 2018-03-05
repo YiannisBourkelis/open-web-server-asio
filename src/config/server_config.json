@@ -60,7 +60,7 @@
 
     "send_file_chunk_size" : "32768",
 
-    "indexes" : ["72b.htm","index.html","index.htm","default.html","default.htm"]
+    "indexes" : ["index.html","index.htm","default.html","default.htm"]
   }
 
 

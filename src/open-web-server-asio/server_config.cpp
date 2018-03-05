@@ -103,7 +103,8 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
             //TODO: should concatenate the strings using append because it is more efficient
                  ends_with_slash ? client_request.uri = client_request.uri + index_filename.toStdString() :
                          client_request.uri = client_request.uri + "/" + index_filename.toStdString();
-            return true;
+
+                 return true;
         }
         //epanaferw to absolute path opws itan
         client_request.response.absolute_hostname_and_requested_path = absolute_host_and_uri;

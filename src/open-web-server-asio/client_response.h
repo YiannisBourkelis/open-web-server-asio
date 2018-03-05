@@ -8,6 +8,7 @@
 
 #include "parser_enums.h"
 using namespace enums;
+typedef http_parser_state s;
 
 class ClientResponse
 {

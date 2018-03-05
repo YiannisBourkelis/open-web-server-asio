@@ -83,7 +83,7 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
             */
 
         } else if (res == http_parser_result::incomplete) {
-            async_read_some(client_request_.data, client_request_.parser_previous_state_index, client_request_.data.size() - client_request_.parser_previous_state_index);
+            async_read_some(client_request_.buffer, client_request_.buffer_position, client_request_.buffer.size() - client_request_.buffer_position);
         }
     } else {
         //error on read. Usually this means that the client disconnected, so
@@ -291,6 +291,10 @@ void ClientSessionBase::send_file_from_cache(){
         std::vector<boost::asio::const_buffer> buffers;
         buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
         buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+                //std::vector<boost::asio::const_buffer> buffers {
+                //    boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                //    boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size())
+                //};
 
         client_request_.response.current_state = ClientResponse::state::single_send;
 
@@ -502,7 +506,7 @@ void ClientSessionBase::handle_write(const boost::system::error_code& error)
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
             if (client_request_.connection == http_connection::keep_alive){
-                async_read_some(client_request_.data);
+                async_read_some(client_request_.buffer);
             }else {
                 //based on the headers of the client request we should close the connection
                 close_socket();

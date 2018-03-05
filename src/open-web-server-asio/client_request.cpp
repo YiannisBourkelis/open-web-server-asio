@@ -6,11 +6,14 @@
 
 using namespace enums;
 
-ClientRequest::ClientRequest() : data(REQUEST_BUFFER_SIZE)
+ClientRequest::ClientRequest() : buffer(REQUEST_BUFFER_SIZE)
 {
 }
 
 //https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+
+//Building your own memory manager for C/C++ projects
+//https://www.ibm.com/developerworks/aix/tutorials/au-memorymanager/index.html
 
 //---- Possible parse algorithm improvements:
 //- The first line of the request is allways GET/POST/HEAD etc. Checking for the request type can be done outside
@@ -29,6 +32,368 @@ ClientRequest::ClientRequest() : data(REQUEST_BUFFER_SIZE)
 //- I tried std::make_move_iterator(data.begin()... to move the data to the object member string variables,
 //  but I didn't measure any possitive difference in performance. Should try it again when there are more
 //  headers to process and copy.
+http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transferred){
+    cr.total_bytes_transfered += bytes_transferred;
+
+    //std::string req__(cr.buffer.begin(), cr.buffer.begin() + cr.total_bytes_transfered);
+    //std::cout << req__ << "\r\n";
+
+    for (; cr.buffer_position < cr.total_bytes_transfered; cr.buffer_position++){
+        switch (cr.parser_state){
+        // **** METHODS GET/POST *******
+        // ----- G E T -----
+        case state_start:
+            if (cr.buffer[cr.buffer_position] == 'G'){
+                cr.parser_state = state_GET_G;
+            } else if (cr.buffer[cr.buffer_position] == 'P'){
+                cr.parser_state = state_POST_P;
+            }
+            break;
+        case state_GET_G:
+            if (cr.buffer[cr.buffer_position] == 'E'){
+                cr.parser_state = state_GET_E;
+            }
+            break;
+        case state_GET_E:
+            if (cr.buffer[cr.buffer_position] == 'T'){
+                cr.parser_state = state_GET_T;
+            }
+            break;
+        case state_GET_T:
+            if (cr.buffer[cr.buffer_position] == ' '){
+                cr.method = http_method::GET;
+                cr.parser_state = state_SPACE_AFTER_METHOD;
+            }
+            break;
+        // ----- G E T -----
+
+        // ----- P O S T -----
+        case state_POST_P:
+            if (cr.buffer[cr.buffer_position] == 'O'){
+                cr.parser_state = state_POST_O;
+            }
+            break;
+        case state_POST_O:
+            if (cr.buffer[cr.buffer_position] == 'S'){
+                cr.parser_state = state_POST_S;
+            }
+            break;
+        case state_POST_S:
+            if (cr.buffer[cr.buffer_position] == 'T'){
+                cr.parser_state = state_POST_T;
+            }
+            break;
+        case state_POST_T:
+            if (cr.buffer[cr.buffer_position] == ' '){
+                cr.method = http_method::POST;
+                cr.parser_state = state_SPACE_AFTER_METHOD;
+            }
+            break;
+        // ----- P O S T -----
+        //  METHODS GET/POST
+
+        // **** URI/QUERYSTRING AFTER METHOD *******
+        case state_SPACE_AFTER_METHOD:
+            //First non space char after the request method marks the begining
+            //of the URI
+            if (cr.buffer[cr.buffer_position] != ' '){
+                //begin of URI
+                cr.parser_state = state_URI_CONTENT;
+                cr.parser_content_begin_index = cr.buffer_position;
+            }
+            break;
+        case state_URI_CONTENT:
+            //Whe are at the URI characters until we find a space.
+            if (cr.buffer[cr.buffer_position] == ' '){
+                //begin of URI
+                cr.parser_state = state_URI_CONTENT_END;
+                cr.uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+            } else if (cr.buffer[cr.buffer_position] == '?'){
+                //we found a ? inside the URI so we extract the URI path
+                //and begin parsing the querystring part of the URI
+                //but first we extract the URI path.
+                cr.uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+                //mark the beginign of the querystring
+                cr.parser_state = state_URI_QUERYSTRING_CONTENT;
+                cr.parser_content_begin_index = cr.buffer_position;
+            }
+            break;
+        case state_URI_CONTENT_END:
+        case state_URI_QUERYSTRING_CONTENT_END:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == 'H'){
+                cr.parser_state = state_HTTP_H;
+            }
+            break;
+        case state_URI_QUERYSTRING_CONTENT:
+            //space after the querystring marks the end of the querystring
+            if (cr.buffer[cr.buffer_position] == ' '){
+                //extract the querystring
+                cr.query_string = std::string(cr.buffer.begin() + cr.parser_content_begin_index + 1,
+                                              cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+                cr.parser_state = state_URI_QUERYSTRING_CONTENT_END;
+            }
+            break;
+
+
+        // URI/QUERYSTRING AFTER METHOD
+
+        // **** HTTP PROTOCOL VERSION *******
+        case state_HTTP_H:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == 'T'){
+                cr.parser_state = state_HTTP_T;
+            }
+            break;
+        case state_HTTP_T:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == 'T'){
+                cr.parser_state = state_HTTP_T_T;
+            }
+            break;
+        case state_HTTP_T_T:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == 'P'){
+                cr.parser_state = state_HTTP_P;
+            }
+            break;
+        case state_HTTP_P:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == '/'){
+                cr.parser_state = state_HTTP_SLASH;
+            }
+            break;
+        case state_HTTP_SLASH:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            //if (cr.buffer[cr.buffer_position] >= 48 && cr.buffer[cr.buffer_position] <= 57){ //number between 0-9
+                cr.parser_state = state_HTTP_VERSION_MAJOR_CONTENT;
+                //cr.http_protocol_ver_major = cr.buffer[cr.buffer_position];
+            //}
+            break;
+        case state_HTTP_VERSION_MAJOR_CONTENT:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            if (cr.buffer[cr.buffer_position] == '.'){
+                cr.parser_state = state_HTTP_VERSION_DOT_CONTENT;
+            }else {
+                //TODO: error. there should be a . after the state_HTTP_VERSION_MAJOR_CONTENT
+            }
+            break;
+        case state_HTTP_VERSION_DOT_CONTENT:
+            //after the end of uri is the HTTP version e.g. HTTP/1.1
+            //if (cr.buffer[cr.buffer_position] >= 48 && cr.buffer[cr.buffer_position] <= 57){ //number between 0-9
+                cr.parser_state = state_HTTP_VERSION_MINOR_CONTENT;
+                //cr.http_protocol_ver_minor = cr.buffer[cr.buffer_position];
+
+                if (cr.buffer[cr.buffer_position - 2] == 49 && cr.buffer[cr.buffer_position] == 49){
+                    cr.http_protocol_ver = http_protocol_version::HTTP_1_1;
+                } else if (cr.buffer[cr.buffer_position - 2] == 49 && cr.buffer[cr.buffer_position] == 48){
+                    cr.http_protocol_ver = http_protocol_version::HTTP_1_0;
+                } else {
+                    //TODO: error -> not supported HTTP version
+                }
+            //}
+            break;
+        // HTTP PROTOCOL VERSION
+
+        // **** Host: HEADER - EXTRACT HOSTNAME *******
+        case state_HOST_H:
+            if (cr.buffer[cr.buffer_position] == 'o'){
+                cr.parser_state = state_HOST_o;
+            }
+            break;
+        case state_HOST_o:
+            if (cr.buffer[cr.buffer_position] == 's'){
+                cr.parser_state = state_HOST_s;
+            }
+            break;
+        case state_HOST_s:
+            if (cr.buffer[cr.buffer_position] == 't'){
+                cr.parser_state = state_HOST_t;
+            }
+            break;
+        case state_HOST_t:
+            if (cr.buffer[cr.buffer_position] == ':'){
+                cr.parser_state = state_HOST_COLON;
+            }
+            break;
+        case state_HOST_COLON:
+            if (cr.buffer[cr.buffer_position] != ' '){
+                cr.parser_state = state_HOST_CONTENT;
+                cr.parser_content_begin_index = cr.buffer_position;
+            }
+            break;
+        case state_HOST_CONTENT:
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_HOST_CONTENT_END;
+                //cr.hostname = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                //                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+
+                cr.hostname = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+                cr.hostname_and_uri.append(cr.hostname).append(cr.uri);
+                cr.parser_state = state_CR;
+            }
+            break;
+        // **** Conn: HEADER - EXTRACT HOSTNAME *******
+
+        // **** HEADER starting with C
+        case state_HEADER_C:
+            if (cr.buffer[cr.buffer_position] == ':'){
+               //check for Content-Length: header
+               //e.g. Content-Length: 96\r\n
+               if (cr.buffer_position - cr.parser_content_begin_index == 14){
+                   //I assume it is the Content-Length: header because it starts with
+                   //C and has 14 letters size and no other header is like that.
+                   cr.parser_state = state_CONTENT_LENGTH_COLON;
+               } else {
+                   cr.parser_state = state_UNKNOWN_HEADER;
+               }
+            }
+            break;
+        case state_CONTENT_LENGTH_COLON:
+            if (cr.buffer[cr.buffer_position] != ' '){
+                cr.parser_content_begin_index = cr.buffer_position;
+                cr.parser_state = state_CONTENT_LENGTH_CONTENT;
+            }
+            break;
+        case state_CONTENT_LENGTH_CONTENT:
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_CR;
+                bool is_valid_content_length_value = true;
+                if (cr.buffer_position - cr.parser_content_begin_index > 13){
+                    //TODO: error if content-length value is too big.
+                    //limit the maximum content-size value to a maximum of
+                    //a 13-digit number - around 9TB
+                }
+                for (size_t i = cr.parser_content_begin_index; i < cr.buffer_position; i++){
+                    if (cr.buffer[i] < 48 || cr.buffer[i] > 57){
+                        is_valid_content_length_value = false;
+                        //TODO: error: the Content-Length value should be a number
+                    }
+                }//for i
+                //ok content length value is a number, lets store it
+                std::string content_length_string(std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                               cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index)));
+                cr.content_length = std::stoull(content_length_string);
+            }
+            break;
+
+
+        // \\\\**** BEGIN OF EVERY HEADER *******////
+        case state_CRLF:
+            // ****** ALL HEADERS COME AFTER A state_CRLF ********
+            if (cr.buffer[cr.buffer_position] == 'H'){
+                cr.parser_state = state_HOST_H;
+                break;
+            }
+
+            //Content-Length: 96 or
+            if (cr.buffer[cr.buffer_position] == 'C'){
+                cr.parser_state = state_HEADER_C;
+                cr.parser_content_begin_index = cr.buffer_position;
+                break;
+            }
+
+
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_CRLF_CR;
+                break;
+            }
+
+            cr.parser_state = state_UNKNOWN_HEADER;
+            break;
+        // \\\\**** BEGIN OF EVERY HEADER *******////
+
+        case state_QUERYSTRING_IN_BODY_CONTENT_BEGIN:
+            cr.request_body.clear();
+            cr.request_body.append(1, cr.buffer[cr.buffer_position]);
+            cr.content_length--;
+            cr.parser_state = state_QUERYSTRING_IN_BODY_CONTENT;
+            break;
+        case state_QUERYSTRING_IN_BODY_CONTENT:
+            cr.content_length--;
+            cr.request_body.append(1, cr.buffer[cr.buffer_position]);
+            if (cr.content_length == 0){
+                cr.parser_state = state_DONE;
+            }
+            break;
+
+
+        case state_CR:
+            if (cr.buffer[cr.buffer_position] == '\n'){
+                cr.parser_state = state_CRLF;
+            }
+            break;
+        case state_CRLF_CR:
+            if (cr.buffer[cr.buffer_position] == '\n'){
+                cr.parser_state = state_CRLF_CRLF;
+
+                if (cr.connection == http_connection::unknown){
+                    if (cr.http_protocol_ver == http_protocol_version::HTTP_1_1){
+                        cr.connection = http_connection::keep_alive;
+                    }else if (cr.http_protocol_ver == http_protocol_version::HTTP_1_0 ||
+                              cr.http_protocol_ver == http_protocol_version::HTTP_0_9){
+                        cr.connection = http_connection::close;
+                    }
+                }
+
+                if (cr.content_length > 0){
+                    //we are at the first \r\n\r\n and we have a content-length > 0
+                    //so we will start copying the request body to the query_string variable
+                    cr.parser_state = state_QUERYSTRING_IN_BODY_CONTENT_BEGIN;
+                } else {
+                    cr.parser_state = state_DONE;
+                }
+                //return http_parser_result::success;
+            } else {
+                //TODO: error: after state_CRLF_CR (\r\n\r) there should allways be a \n
+            }
+            break;
+
+        case state_UNKNOWN_HEADER:
+        default:
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_CR;
+            }
+            break;
+
+        }//switch
+    } // parser for loop
+
+
+    if (cr.parser_state != state_DONE){
+        if (cr.buffer.size() == cr.total_bytes_transfered){
+            cr.buffer.resize(cr.buffer.size() + cr.REQUEST_BUFFER_SIZE);
+        }
+        return http_parser_result::incomplete;
+    } else if (cr.parser_state == state_DONE){
+        return http_parser_result::success;
+    }else {
+        //std::cout << "ok";
+    }
+
+    return http_parser_result::fail;
+}
+
+void ClientRequest::cleanup()
+{
+    if (parser_state == s::state_DONE){
+        parser_state = state_start;
+        //content_size = 0;
+        connection = http_connection::unknown;
+        hostname_and_uri.clear();
+        //parser_current_state_index = 0;
+        //parser_previous_state_index = 0;
+        buffer_position = 0;
+        total_bytes_transfered = 0;
+        is_range_request = false;
+    }
+}
+
+
+/*
 http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transferred){
 
 
@@ -282,14 +647,5 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
     return http_parser_result::success;
 }
+*/
 
-void ClientRequest::cleanup()
-{
-    if (parser_current_state == state_DONE){
-        //content_size = 0;
-        connection = http_connection::unknown;
-        parser_current_state_index = 0;
-        parser_previous_state_index = 0;
-        //buffer_position = 0;
-    }
-}

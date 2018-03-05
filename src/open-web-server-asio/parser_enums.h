@@ -5,47 +5,56 @@ namespace enums {
 
     enum http_parser_state {
         //GET /index.html HTTP/1.1
-        start_state,
-        state_METHOD,
-        state_METHOD_URI_CONTENT,
-        state_METHOD_URI_QUERYSTRING_CONTENT,
-        state_METHOD_URI_CONTENT_END,
+        state_start = 0,
 
-        state_HTTP_VERSION,
+        state_GET_G,
+        state_GET_E,
+        state_GET_T,
 
-        state_CRLF,
-        state_CRLF_x2,
-        state_DONE,
+        state_POST_P,
+        state_POST_O,
+        state_POST_S,
+        state_POST_T,
 
-        //Host: localhost:12343
-        state_HOST,
+
+        state_URI_CONTENT,
+        state_URI_CONTENT_END,
+        state_URI_QUERYSTRING_CONTENT,
+        state_URI_QUERYSTRING_CONTENT_END,
+        state_QUERYSTRING_IN_BODY_CONTENT_BEGIN,
+        state_QUERYSTRING_IN_BODY_CONTENT,
+
+        state_SPACE_AFTER_METHOD,
+
+        state_HTTP_H,
+        state_HTTP_T,
+        state_HTTP_T_T,
+        state_HTTP_P,
+        state_HTTP_SLASH,
+        state_HTTP_VERSION_MAJOR_CONTENT,
+        state_HTTP_VERSION_DOT_CONTENT,
+        state_HTTP_VERSION_MINOR_CONTENT,
+
+        state_HOST_H,
+        state_HOST_o,
+        state_HOST_s,
+        state_HOST_t,
+        state_HOST_COLON,
         state_HOST_CONTENT,
         state_HOST_CONTENT_END,
 
-        state_CONNECTION,
-        state_CONNECTION_KEEP_ALIVE_OR_CLOSE,
+        state_HEADER_C,
 
-        state_UNKNOWN_HEADER,
+        state_CONTENT_LENGTH_COLON,
+        state_CONTENT_LENGTH_CONTENT,
 
 
-        //Range: bytes=0-1023
-        state_RANGE_R,
-        state_RANGE_A,
-        state_RANGE_N,
-        state_RANGE_G,
-        state_RANGE_E,
-        state_RANGE_COLON,
-        state_RANGE_BYTES_B,
-        state_RANGE_BYTES_Y,
-        state_RANGE_BYTES_T,
-        state_RANGE_BYTES_E,
-        state_RANGE_BYTES_S,
-        state_RANGE_BYTES_EQUALS,
-        state_RANGE_BYTES_EQUALS_FROM,
-        state_RANGE_BYTES_EQUALS_FROM_END,
-        state_RANGE_BYTES_EQUALS_FROM_DASH,
-        state_RANGE_BYTES_EQUALS_UNTIL,
-        state_RANGE_BYTES_EQUALS_UNTIL_END
+        state_DONE,
+        state_CR,
+        state_CRLF,
+        state_CRLF_CR,
+        state_CRLF_CRLF,
+        state_UNKNOWN_HEADER
     };
 
     enum class http_parser_result {
