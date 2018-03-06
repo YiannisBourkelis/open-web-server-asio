@@ -238,6 +238,38 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             break;
         // **** Conn: HEADER - EXTRACT HOSTNAME *******
 
+        // **** HEADER starting with A ***********
+        // TODO: Authorization
+        // **** [Accept], [Accept-Charset], [Accept-Encoding] [Accept-Language] [Authorization]
+        case state_HEADER_A:
+            if (cr.buffer[cr.buffer_position] == ':'){
+               //check for Content-Length: header
+               //e.g. Content-Length: 96\r\n
+               size_t header_size = cr.buffer_position - cr.parser_content_begin_index;
+               if (header_size == 6){
+                   //I assume it is the Accept: header because it starts with
+                   //A and has 6 letters size and no other header is like that.
+                   cr.parser_state = state_ACCEPT_COLON;
+                   break;
+               } else if (header_size == 14){
+                   //Assume Accept-Charset
+                   cr.parser_state = state_ACCEPT_CHARSET_COLON;
+                   break;
+               } else if (header_size == 15){
+                   if (cr.buffer[cr.buffer_position - 1] == 'g') {
+                      //Assume Accept-Encoding
+                      cr.parser_state = state_ACCEPT_ENCODING_COLON;
+                   } else if (cr.buffer[cr.buffer_position - 1] == 'e'){
+                      //Assume Accept-Language
+                      cr.parser_state = state_ACCEPT_LANGUAGE_COLON;
+                   }
+                   break;
+               }
+               cr.parser_state = state_UNKNOWN_HEADER;
+            } // if ':'
+            break;
+        // **** HEADER starting with A ***********
+
         // **** HEADER starting with C ***********
         // **** [Content-Length], [Cookie], [Connection]
         case state_HEADER_C:
@@ -283,6 +315,71 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             }
             break;
         // **** HEADER starting with U ***********
+
+        // ********* Accept: **********************
+       case state_ACCEPT_COLON:
+           if (cr.buffer[cr.buffer_position] != ' '){
+               cr.parser_content_begin_index = cr.buffer_position;
+               cr.parser_state = state_ACCEPT_CONTENT;
+           }
+           break;
+       case state_ACCEPT_CONTENT:
+           if (cr.buffer[cr.buffer_position] == '\r'){
+               cr.parser_state = state_CR;
+               cr.accept = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                    cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+           }
+           break;
+        // ****************************************
+
+        // ********* Accept-Charset: **********************
+        case state_ACCEPT_CHARSET_COLON:
+          if (cr.buffer[cr.buffer_position] != ' '){
+              cr.parser_content_begin_index = cr.buffer_position;
+              cr.parser_state = state_ACCEPT_CHARSET_CONTENT;
+          }
+          break;
+        case state_ACCEPT_CHARSET_CONTENT:
+          if (cr.buffer[cr.buffer_position] == '\r'){
+              cr.parser_state = state_CR;
+              cr.accept_charset = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                   cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+          }
+          break;
+        // ****************************************
+
+        // ********* Accept-Encoding: **********************
+        case state_ACCEPT_ENCODING_COLON:
+          if (cr.buffer[cr.buffer_position] != ' '){
+              cr.parser_content_begin_index = cr.buffer_position;
+              cr.parser_state = state_ACCEPT_ENCODING_CONTENT;
+          }
+          break;
+        case state_ACCEPT_ENCODING_CONTENT:
+          if (cr.buffer[cr.buffer_position] == '\r'){
+              cr.parser_state = state_CR;
+              cr.accept_encoding = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                   cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+          }
+          break;
+        // ****************************************
+
+
+         // ********* Accept-Language: **********************
+        case state_ACCEPT_LANGUAGE_COLON:
+            if (cr.buffer[cr.buffer_position] != ' '){
+                cr.parser_content_begin_index = cr.buffer_position;
+                cr.parser_state = state_ACCEPT_LANGUAGE_CONTENT;
+            }
+            break;
+        case state_ACCEPT_LANGUAGE_CONTENT:
+            if (cr.buffer[cr.buffer_position] == '\r'){
+                cr.parser_state = state_CR;
+                cr.accept_language = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                     cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+            }
+            break;
+         // ****************************************
 
         // ********* Content-Length: *************
         case state_CONTENT_LENGTH_COLON:
@@ -389,6 +486,14 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                 break;
             }
 
+            //Accept, Accept-Charset, Accept-Encoding, Accept-Language, (TODO:Authorization)
+            if (cr.buffer[cr.buffer_position] == 'A'){
+                cr.parser_state = state_HEADER_A;
+                cr.parser_content_begin_index = cr.buffer_position;
+                break;
+            }
+
+
             //User-Agent: or Upgrade
             if (cr.buffer[cr.buffer_position] == 'U'){
                 cr.parser_state = state_HEADER_U;
@@ -489,6 +594,10 @@ void ClientRequest::cleanup()
         hostname_and_uri.clear();
         cookie.clear();
         user_agent.clear();
+        accept.clear();
+        accept_charset.clear();
+        accept_encoding.clear();
+        accept_language.clear();
         //parser_current_state_index = 0;
         //parser_previous_state_index = 0;
         buffer_position = 0;

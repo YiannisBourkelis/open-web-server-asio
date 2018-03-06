@@ -40,6 +40,10 @@ public:
     std::string hostname;
     std::string cookie;
     std::string user_agent;
+    std::string accept;
+    std::string accept_charset;
+    std::string accept_encoding;
+    std::string accept_language;
     http_method method;
     http_protocol_version http_protocol_ver;
     //char http_protocol_ver_major; //0-9

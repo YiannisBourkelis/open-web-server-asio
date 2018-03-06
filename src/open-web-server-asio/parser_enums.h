@@ -43,6 +43,22 @@ namespace enums {
         state_HOST_CONTENT,
         state_HOST_CONTENT_END,
 
+        state_HEADER_A,
+
+        state_ACCEPT_COLON,
+        state_ACCEPT_CONTENT,
+
+        state_ACCEPT_CHARSET_COLON,
+        state_ACCEPT_CHARSET_CONTENT,
+
+        state_ACCEPT_ENCODING_COLON,
+        state_ACCEPT_ENCODING_CONTENT,
+
+        state_ACCEPT_LANGUAGE_COLON,
+        state_ACCEPT_LANGUAGE_CONTENT,
+
+
+
         state_HEADER_C,
 
         state_CONTENT_LENGTH_COLON,

@@ -38,7 +38,6 @@ void rocket::takeoff(QCoreApplication *qcore_aplication)
     //load the server config file.
     //This file contains all the server settings regarding
     //virtual hosts, index pages, cache size etc.
-
     ServerConfig::initialize();//init the server config.
 
     ServerConfigJsonParser server_config_json_parser;//this will parse the default server_config.json file.
@@ -48,6 +47,8 @@ void rocket::takeoff(QCoreApplication *qcore_aplication)
     ServerConfig::io_service_ = &rocket::io_service;
     ServerConfig::parse_config_file(ServerConfig::config_file_path);
 
+    //initilizes the filesystem watcher, so in case of a file change
+    //the cache will be updated, if this file exist in the cach
     rocket::cache.initialize(qcore_aplication);
 
     rocket::io_service.run();
@@ -73,6 +74,10 @@ const std::string &rocket::get_gmt_date_time(std::time_t &time_now)
     return gmt_date_time_;
 }
 
+//A very efficient way to get an etag for versioning each
+//element in the cache. The risk of a dublicate is close to 0,
+//with a smaller probability than using a fast hashing algorithm,
+//and of course using fewer CPU cycles.
 const std::string rocket::get_next_etag()
 {
 #ifdef WIN32
