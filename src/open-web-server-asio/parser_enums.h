@@ -4,9 +4,17 @@
 namespace enums {
 
     enum http_parser_state {
-        //GET /index.html HTTP/1.1
+        // ****** HTTP Request or CGI responce specific ********
         state_start = 0,
+        state_DONE,
+        state_CR,
+        state_CRLF,
+        state_CRLF_CR,
+        state_CRLF_CRLF,
+        state_UNKNOWN_HEADER,
+        // ****** HTTP Request or CGI responce specific ********
 
+        // ******** http request specific *********
         state_GET_G,
         state_GET_E,
         state_GET_T,
@@ -73,15 +81,21 @@ namespace enums {
         state_HEADER_U,
         state_USER_AGENT_COLON,
         state_USER_AGENT_CONTENT,
+        // ******** http request specific *********
+
+        // ****** CGI responce specific ********
+        state_CGI_S,
+
+        state_CGI_STATUS_COLON,
+        state_CGI_STATUS_FOUND,
+        //state_CGI_STATUS_CONTENT,
+
+        state_CGI_L,
+        state_CGI_LOCATION_COLON,
+        state_CGI_LOCATION_CONTENT
 
 
-
-        state_DONE,
-        state_CR,
-        state_CRLF,
-        state_CRLF_CR,
-        state_CRLF_CRLF,
-        state_UNKNOWN_HEADER
+        // ****** CGI responce specific ********
     };
 
     enum class http_parser_result {

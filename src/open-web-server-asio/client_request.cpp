@@ -587,7 +587,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
 void ClientRequest::cleanup()
 {
-    if (parser_state == s::state_DONE){
+    if (parser_state == state_DONE){
         parser_state = state_start;
         //content_size = 0;
         connection = http_connection::unknown;

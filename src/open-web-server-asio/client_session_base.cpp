@@ -149,34 +149,42 @@ void ClientSessionBase::process_client_request()
 
             std::time_t t;
             client_request_.response.header.clear();
-            client_request_.response.header.append(
-            HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
-            rocket::get_gmt_date_time(t)).append(
-            HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
-            std::to_string(client_request_.response.body_in.size())).append(
-            HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
-            rocket::get_gmt_date_time(t)).append(
-            HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
-            "no-etag").append(
-            "\"\r\n");
 
-            std::vector<char> head_vect(client_request_.response.header.begin(),
-                                        client_request_.response.header.end());
+            if (client_request_.response.cgi__status == cgi_status::_200_OK){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+                rocket::get_gmt_date_time(t)).append(
+                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+                std::to_string(client_request_.response.body_in.size())).append(
+                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+                rocket::get_gmt_date_time(t)).append(
+                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+                            "no-etag").append("\"\r\n");
+            } else if (client_request_.response.cgi__status == cgi_status::_302_FOUND){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_);
+            } else {
+                //TODO: have to figure out what to do with the other cgi response statuses
+                return;
+            }
+
+            //std::vector<char> head_vect(client_request_.response.header.begin(),
+            //                            client_request_.response.header.end());
 
             std::cout << client_request_.response.header << std::endl;
 
             client_request_.response.data.clear();
             client_request_.response.data.insert(client_request_.response.data.end(),
-                                                 head_vect.begin(),
-                                                 head_vect.end());
+                                                 client_request_.response.header.begin(),
+                                                 client_request_.response.header.end());
+
+            //client_request_.response.data.insert(client_request_.response.data.end(),
+            //                                     client_request_.response.header_in.begin(),
+            //                                     client_request_.response.header_in.end());
 
             client_request_.response.data.insert(client_request_.response.data.end(),
-                                                 client_request_.response.header_in.begin(),
-                                                 client_request_.response.header_in.end());
-
-            client_request_.response.data.insert(client_request_.response.data.end(),
-                                                 client_request_.response.body_in.begin(),
-                                                 client_request_.response.body_in.end());
+                                                 client_request_.response.data_in.begin(),
+                                                 client_request_.response.data_in.end());
 
 
 

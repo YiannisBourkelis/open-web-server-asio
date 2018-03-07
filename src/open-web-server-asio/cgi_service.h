@@ -3,7 +3,6 @@
 
 #include "client_request.h"
 #include <QProcess>
-#include <QString>
 
 class CgiService
 {

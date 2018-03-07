@@ -103,6 +103,9 @@ const QString HTTP_Response_Templates::_400_BAD_REQUEST_BODY_ = ("<html><head><t
                                                          "<hr><center>Open Web Server/1.0-alpha</center>"
                                                          "</body></html>\r\n");
 
+
+const std::string HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_ = ("HTTP/1.1 302 Found\r\n");
+
 HTTP_Response_Templates::HTTP_Response_Templates()
 {
 }
