@@ -103,8 +103,19 @@ const QString HTTP_Response_Templates::_400_BAD_REQUEST_BODY_ = ("<html><head><t
                                                          "<hr><center>Open Web Server/1.0-alpha</center>"
                                                          "</body></html>\r\n");
 
+const std::string HTTP_Response_Templates::_301_MOVED_PERMANENTLY_REDIRECT_HEADER_ = ("HTTP/1.1 301 Moved Permanently\r\n"
+                                                                          "Connection: keep-alive\r\n"
+                                                                          "Date: Wed, 07 Mar 2018 01:28:05 GMT\r\n");
 
-const std::string HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_ = ("HTTP/1.1 302 Found\r\n");
+
+const std::string HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_ = ("HTTP/1.1 302 Found\r\n"
+                                                                          "Connection: keep-alive\r\n"
+                                                                          "Date: Wed, 07 Mar 2018 01:28:05 GMT\r\n");
+
+const std::string HTTP_Response_Templates::_303_SEE_OTHER_REDIRECT_HEADER_ = ("HTTP/1.1 303 See Other\r\n"
+                                                                          "Connection: keep-alive\r\n"
+                                                                          "Date: Wed, 07 Mar 2018 01:28:05 GMT\r\n");
+
 
 HTTP_Response_Templates::HTTP_Response_Templates()
 {

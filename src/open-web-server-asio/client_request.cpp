@@ -6,8 +6,18 @@
 
 using namespace enums;
 
+//unsigned long long ClientRequest::client_requests_active = 0;
+
 ClientRequest::ClientRequest() : buffer(REQUEST_BUFFER_SIZE)
 {
+    //ClientRequest::client_requests_active++;
+    //std::cout << "Constructor: client_requests_active: " << ClientRequest::client_requests_active << std::endl;
+}
+
+ClientRequest::~ClientRequest()
+{
+    //ClientRequest::client_requests_active--;
+    //std::cout << "Destructor client_requests_active: " << ClientRequest::client_requests_active << std::endl;
 }
 
 //https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
@@ -35,8 +45,8 @@ ClientRequest::ClientRequest() : buffer(REQUEST_BUFFER_SIZE)
 http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transferred){
     cr.total_bytes_transfered += bytes_transferred;
 
-    //std::string req__(cr.buffer.begin(), cr.buffer.begin() + cr.total_bytes_transfered);
-    //std::cout << req__ << "\r\n";
+    //std::string req__(cr.buffer.begin(), cr.buffer.end());
+    //std::cout << req__ << std::endl;
 
     for (; cr.buffer_position < cr.total_bytes_transfered; cr.buffer_position++){
         switch (cr.parser_state){
@@ -107,14 +117,15 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             if (cr.buffer[cr.buffer_position] == ' '){
                 //begin of URI
                 cr.parser_state = state_URI_CONTENT_END;
-                cr.uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                cr.request_uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
                                      cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
             } else if (cr.buffer[cr.buffer_position] == '?'){
                 //we found a ? inside the URI so we extract the URI path
                 //and begin parsing the querystring part of the URI
                 //but first we extract the URI path.
-                cr.uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                cr.document_uri = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
                                      cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+                cr.request_uri = cr.document_uri;
                 //mark the beginign of the querystring
                 cr.parser_state = state_URI_QUERYSTRING_CONTENT;
                 cr.parser_content_begin_index = cr.buffer_position;
@@ -133,6 +144,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                 //extract the querystring
                 cr.query_string = std::string(cr.buffer.begin() + cr.parser_content_begin_index + 1,
                                               cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+                cr.request_uri.append("?").append(cr.query_string);
                 cr.parser_state = state_URI_QUERYSTRING_CONTENT_END;
             }
             break;
@@ -232,7 +244,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
 
                 cr.hostname = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
                                      cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
-                cr.hostname_and_uri.append(cr.hostname).append(cr.uri);
+                cr.hostname_and_request_uri.append(cr.hostname).append(cr.request_uri);
                 cr.parser_state = state_CR;
             }
             break;
@@ -281,6 +293,9 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                    //I assume it is the Content-Length: header because it starts with
                    //C and has 14 letters size and no other header is like that.
                    cr.parser_state = state_CONTENT_LENGTH_COLON;
+               } else if (header_size == 12){
+                   //Assume Content-Type header
+                   cr.parser_state = state_CONTENT_TYPE_COLON;
                } else if (header_size == 6){
                    //Assume Cookie Header
                    cr.parser_state = state_COOKIE_COLON;
@@ -396,11 +411,13 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
                     //TODO: error if content-length value is too big.
                     //limit the maximum content-size value to a maximum of
                     //a 13-digit number - around 9TB
+                    break;
                 }
                 for (size_t i = cr.parser_content_begin_index; i < cr.buffer_position; i++){
                     if (cr.buffer[i] < 48 || cr.buffer[i] > 57){
                         is_valid_content_length_value = false;
                         //TODO: error: the Content-Length value should be a number
+                        break;
                     }
                 }//for i
                 //ok content length value is a number, lets store it
@@ -410,6 +427,22 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
             }
             break;
          // *****************************************
+
+        // ********* Content-Type: **********************
+       case state_CONTENT_TYPE_COLON:
+           if (cr.buffer[cr.buffer_position] != ' '){
+               cr.parser_content_begin_index = cr.buffer_position;
+               cr.parser_state = state_CONTENT_TYPE_CONTENT;
+           }
+           break;
+       case state_CONTENT_TYPE_CONTENT:
+           if (cr.buffer[cr.buffer_position] == '\r'){
+               cr.parser_state = state_CR;
+               cr.content_type = std::string(cr.buffer.begin() + cr.parser_content_begin_index,
+                                    cr.buffer.begin() + cr.parser_content_begin_index + (cr.buffer_position - cr.parser_content_begin_index));
+           }
+           break;
+        // ****************************************
 
          // ********* Cookie: **********************
         case state_COOKIE_COLON:
@@ -560,6 +593,7 @@ http_parser_result ClientRequest::parse(ClientRequest &cr, size_t bytes_transfer
     } // parser for loop
 
 
+
     if (cr.parser_state != state_DONE){
         if (cr.buffer.size() == cr.total_bytes_transfered){
             cr.buffer.resize(cr.buffer.size() + cr.REQUEST_BUFFER_SIZE);
@@ -591,8 +625,10 @@ void ClientRequest::cleanup()
         parser_state = state_start;
         //content_size = 0;
         connection = http_connection::unknown;
-        hostname_and_uri.clear();
+        hostname_and_request_uri.clear();
+        document_uri.clear();
         cookie.clear();
+        content_type.clear();
         user_agent.clear();
         accept.clear();
         accept_charset.clear();

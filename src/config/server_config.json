@@ -7,7 +7,32 @@
 
     {
       "virtual_host" : {
-        "server_name": ["localhost", "www.localhost"],
+        "server_name": ["localhost", "www.localhost", "192.168.32.1211"],
+
+        "listen" : [
+          {"port" : 12343},
+          {"port" : 12345},
+          {"port" : 12346}
+        ],
+
+        "document_root" : "/Users/yiannis/www/default/public_html",
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.1211"],
 
         "listen" : [
           {"port" : 12343},
@@ -16,7 +41,54 @@
         ],
 
         "document_root" : "/Users/yiannis/Downloads/wordpress",
-        "directory_listing" : true,
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.121"],
+
+        "listen" : [
+          {"port" : 12343}
+        ],
+
+        "document_root" : "/Users/yiannis/Downloads/Joomla_3.8.5-Stable-Full_Package",
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.1211"],
+
+        "listen" : [
+          {"port" : 12343}
+        ],
+
+        "document_root" : "/Users/yiannis/Downloads/drupal-8.5.0",
+        "directory_listing" : false,
 
         "proxy_pass" : "http://localhost:5000",
         "tcp_nodelay" : true,
@@ -60,7 +132,7 @@
 
     "send_file_chunk_size" : "32768",
 
-    "indexes" : ["index.php", "index.html","index.htm","default.html","default.htm"]
+    "indexes" : ["index.php", "7ff.html","index.htm","default.html","default.htm"]
   }
 
 

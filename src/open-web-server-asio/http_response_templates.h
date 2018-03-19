@@ -44,7 +44,9 @@ public:
     static std::string _200_OK_AFTER_LAST_MODIFIED_;
     static std::string _200_OK_AFTER_ETAG_VALUE;
 
+    static const std::string _301_MOVED_PERMANENTLY_REDIRECT_HEADER_;
     static const std::string _302_FOUND_REDIRECT_HEADER_;
+    static const std::string _303_SEE_OTHER_REDIRECT_HEADER_;
 
     static const QString _206_PARTIAL_CONTENT_RESPONSE_HEADER;
     static const QString _DIRECTORY_LISTING_;

@@ -19,18 +19,17 @@ bool CgiService::execute_(ClientRequest &client_request)
     env.insert("SCRIPT_FILENAME", client_request.response.absolute_hostname_and_requested_path);   //OK "/Users/yiannis/Downloads/wordpress/wp-admin/setup-config.php");
     env.insert("QUERY_STRING", QString::fromStdString(client_request.query_string));
     env.insert("REQUEST_METHOD", client_request.method == http_method::GET ? "GET" : "POST" ); //OK
+    env.insert("CONTENT_TYPE", QString::fromStdString(client_request.content_type));
 
     if (client_request.request_body.size() > 0){
-        env.insert("CONTENT_TYPE", "application/x-www-form-urlencoded");
         env.insert("CONTENT_LENGTH", QString::number(client_request.request_body.size()));
     } else {
-        env.insert("CONTENT_TYPE", "");
         env.insert("CONTENT_LENGTH", "");
     }
 
-    env.insert("SCRIPT_NAME", QString::fromStdString(client_request.uri));//OK
-    env.insert("REQUEST_URI", QString::fromStdString(client_request.uri));   //"OK /wp-admin/setup-config.php");
-    env.insert("DOCUMENT_URI", QString::fromStdString(client_request.uri)); //OK
+    env.insert("SCRIPT_NAME", QString::fromStdString(client_request.document_uri));//OK
+    env.insert("REQUEST_URI", QString::fromStdString(client_request.request_uri));   //"OK /wp-admin/setup-config.php");
+    env.insert("DOCUMENT_URI", QString::fromStdString(client_request.document_uri)); //OK
     env.insert("DOCUMENT_ROOT", client_request.response.server_config_map_it->second.DocumentRoot); //"OK /Users/yiannis/Downloads/wordpress"
     env.insert("SERVER_PROTOCOL", "HTTP/1.1"); //OK
     env.insert("REQUEST_SCHEME", "http"); //OK

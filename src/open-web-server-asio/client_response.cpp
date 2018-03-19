@@ -23,6 +23,10 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
     client_response.cgi_location.clear();
 
     for (size_t buffer_position = 0; buffer_position < bytes_transferred; buffer_position++){
+        //if(buffer_position == 336){
+        //    std::cout << "break here";
+        //}
+
         switch (parser_state){
 
         // ******* CHECK EVERY HEADER ************
@@ -41,9 +45,16 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
             }
 
             if (rd[buffer_position] == '\r'){
-                parser_state = state_CRLF_CR;
+                if (parser_state == state_CRLF){
+                    parser_state = state_CRLF_CR;
+                }else{
+                   parser_state = state_CR;
+                }
                 break;
             }
+
+            parser_state = state_UNKNOWN_HEADER;
+            break;
         // ******* CHECK EVERY HEADER ************
 
         case state_CGI_S:
@@ -71,9 +82,24 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
                     parser_state = state_CGI_STATUS_FOUND;
                 }
                 if (rd[buffer_position] == '3'){
-                    //Status: 302
+                    //Status: 3xx
+                    parser_state = state_CGI_STATUS_3XX;
+                }
+            }
+            break;
+        case state_CGI_STATUS_3XX:
+            if (rd[buffer_position] == ' '){
+                if (rd[buffer_position - 1] == '1'){
+                    client_response.cgi__status = cgi_status::_301_MOVED_PERMANENTLY;
+                    parser_state = state_CGI_STATUS_FOUND;
+                }else if (rd[buffer_position - 1] == '2'){
                     client_response.cgi__status = cgi_status::_302_FOUND;
                     parser_state = state_CGI_STATUS_FOUND;
+                }else if (rd[buffer_position - 1] == '3'){
+                    client_response.cgi__status = cgi_status::_303_SEE_OTHER;
+                    parser_state = state_CGI_STATUS_FOUND;
+                } else {
+                    parser_state = state_UNKNOWN_HEADER;
                 }
             }
             break;
@@ -83,8 +109,8 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
                     status_header_removal_end = buffer_position + 1;
                 }
                 parser_state = state_CR;
-                break;
             }
+            break;
 
         case state_CGI_L:
             if (rd[buffer_position] == ':'){
@@ -129,7 +155,8 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
                     //client_response.body_in.clear();
                 }
                 parser_state = state_DONE;
-                continue;
+                //maybe the best solution to exit from the switch and for loop.
+                goto exit_loop;
             } else {
                 //TODO: error: after state_CRLF_CR (\r\n\r) there should allways be a \n
             }
@@ -145,6 +172,7 @@ http_parser_result ClientResponse::parse(std::vector<char> &rd, ClientResponse &
 
         }//switch
     }// for loop
+    exit_loop: ;
 
     if (parser_state == state_DONE){
         ret = http_parser_result::success;

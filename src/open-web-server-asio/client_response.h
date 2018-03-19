@@ -12,7 +12,9 @@ using namespace enums;
 enum class cgi_status {
     UNKNOWN,
     _200_OK,
-    _302_FOUND
+    _301_MOVED_PERMANENTLY,
+    _302_FOUND,
+    _303_SEE_OTHER
 };
 
 class ClientResponse

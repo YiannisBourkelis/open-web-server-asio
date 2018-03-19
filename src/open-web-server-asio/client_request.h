@@ -32,13 +32,18 @@ class ClientRequest
 {
 public:
     ClientRequest();
+    ~ClientRequest();
 
-    std::vector<char> raw_request;
-    std::string uri;
+    //static unsigned long long client_requests_active;
+
+    std::string request_uri; //the exact uri as requested by the client
+    std::string document_uri; // The URI after any rewrite rules applied to the requested URI.
     std::string query_string;
     std::string request_body;
     std::string hostname;
     std::string cookie;
+    std::string content_type;
+    uint64_t content_length = 0;
     std::string user_agent;
     std::string accept;
     std::string accept_charset;
@@ -48,7 +53,6 @@ public:
     http_protocol_version http_protocol_ver;
     //char http_protocol_ver_major; //0-9
     //char http_protocol_ver_minor; //0-9
-    uint64_t content_length = 0;
     http_connection connection = http_connection::unknown;
 
     bool is_range_request = false;
@@ -60,7 +64,7 @@ public:
     ClientResponse response;
     std::unordered_map<CacheKey, CacheContent>::iterator cache_iterator;
 
-    std::string hostname_and_uri;//ypologizetai otan ginei parse to uri kai to hostname
+    std::string hostname_and_request_uri;//ypologizetai otan ginei parse to uri kai to hostname
 
     // parser specific
     const int REQUEST_BUFFER_SIZE = 1024;//default 1024

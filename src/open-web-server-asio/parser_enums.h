@@ -72,6 +72,9 @@ namespace enums {
         state_CONTENT_LENGTH_COLON,
         state_CONTENT_LENGTH_CONTENT,
 
+        state_CONTENT_TYPE_COLON,
+        state_CONTENT_TYPE_CONTENT,
+
         state_COOKIE_COLON,
         state_COOKIE_CONTENT,
 
@@ -87,6 +90,7 @@ namespace enums {
         state_CGI_S,
 
         state_CGI_STATUS_COLON,
+        state_CGI_STATUS_3XX,
         state_CGI_STATUS_FOUND,
         //state_CGI_STATUS_CONTENT,
 
