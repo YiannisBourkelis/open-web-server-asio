@@ -143,6 +143,7 @@ void ClientSessionBase::process_client_request()
 
         //ok the requested uri exists, so I check the config
         //if we should serve it using cgi
+        /*
         if (file_io.fileName().contains("php")){
             CgiService::execute_(client_request_);
 
@@ -200,6 +201,7 @@ void ClientSessionBase::process_client_request()
 
             return;
         }
+        */
 
 
 

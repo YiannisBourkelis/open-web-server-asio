@@ -7,7 +7,7 @@
 
     {
       "virtual_host" : {
-        "server_name": ["localhost", "www.localhost", "192.168.32.1211"],
+        "server_name": ["localhost"],
 
         "listen" : [
           {"port" : 12343},
@@ -18,21 +18,13 @@
         "document_root" : "/Users/yiannis/www/default/public_html",
         "directory_listing" : false,
 
-        "proxy_pass" : "http://localhost:5000",
-        "tcp_nodelay" : true,
-
-        "location" : [
-          {"uri" : "*",
-          "file_extension" : "php",
-          "cgi" : "php-cgi",
-          "proxy_pass" : "http://localhost:5000"}
-        ]
+        "tcp_nodelay" : true
       }
     },
 
     {
       "virtual_host" : {
-        "server_name": ["192.168.32.1211"],
+        "server_name": ["192.168.32.142"],
 
         "listen" : [
           {"port" : 12343},
@@ -81,7 +73,7 @@
 
     {
       "virtual_host" : {
-        "server_name": ["192.168.32.1211"],
+        "server_name": ["192.168.32.111"],
 
         "listen" : [
           {"port" : 12343}
@@ -132,7 +124,7 @@
 
     "send_file_chunk_size" : "32768",
 
-    "indexes" : ["index.php", "7ff.html","index.htm","default.html","default.htm"]
+    "indexes" : ["7ff.html","index.htm","default.html","default.htm"]
   }
 
 
