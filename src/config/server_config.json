@@ -12,7 +12,12 @@
         "listen" : [
           {"port" : 12343},
           {"port" : 12345},
-          {"port" : 12346}
+          {"port" : 12346},
+          {"port" : 12347,
+            "encryption" : true,
+            "ssl_certificate" : "/path/to/certificate.pem",
+            "ssl_protocols" : ["TLSv1.1","TLSv1.2"]
+          }
         ],
 
         "document_root" : "/Users/yiannis/www/default/public_html",

@@ -4,6 +4,7 @@
 #include "server_config.h"
 #include <ctime>
 #include <QLocale>
+#include <boost/thread.hpp>
 
 //public statics
 boost::asio::io_service rocket::io_service;
@@ -55,6 +56,17 @@ void rocket::takeoff(QCoreApplication *qcore_aplication)
     std::cout << "Boost lib version: " BOOST_LIB_VERSION << std::endl;
 
 
+    /*
+    boost::thread_group tg;
+    for (unsigned i = 0; i < boost::thread::hardware_concurrency(); ++i)
+    //for (unsigned i = 0; i < 4; ++i)
+    {
+        auto t = tg.create_thread(boost::bind(&io_service::run, &rocket::io_service));
+        std::cout << t->get_id() << std::endl;
+
+    }
+    tg.join_all();
+    */
     rocket::io_service.run();
 }
 
