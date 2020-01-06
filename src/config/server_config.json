@@ -16,7 +16,7 @@
         ],
 
         "document_root" : "/Users/yiannis/www/default/public_html",
-        "directory_listing" : false,
+        "directory_listing" : true,
 
         "tcp_nodelay" : true
       }

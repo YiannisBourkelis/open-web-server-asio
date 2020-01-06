@@ -51,6 +51,10 @@ void rocket::takeoff(QCoreApplication *qcore_aplication)
     //the cache will be updated, if this file exist in the cach
     rocket::cache.initialize(qcore_aplication);
 
+    std::cout << OPENSSL_VERSION_TEXT << std::endl;
+    std::cout << "Boost lib version: " BOOST_LIB_VERSION << std::endl;
+
+
     rocket::io_service.run();
 }
 
