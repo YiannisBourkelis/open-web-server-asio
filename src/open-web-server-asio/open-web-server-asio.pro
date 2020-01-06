@@ -1,3 +1,6 @@
+#should check gcc Profile guided optimization
+#https://en.wikipedia.org/wiki/Profile-guided_optimization
+
 QT -= gui
 
 CONFIG += c++11 console
@@ -20,7 +23,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp \
     rocket.cpp \
     client_request.cpp \
-    client_request_parser.cpp \
     client_response.cpp \
     server_config.cpp \
     server_config_virtualhost.cpp \
@@ -37,7 +39,8 @@ SOURCES += main.cpp \
     client_session_encrypted.cpp \
     asio_server_base.cpp \
     asio_server_plain.cpp \
-    asio_server_encrypted.cpp
+    asio_server_encrypted.cpp \
+    cgi_service.cpp
 
 # boost libraries build guide
 # - download boost
@@ -69,7 +72,6 @@ linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
 HEADERS += \
     rocket.h \
     client_request.h \
-    client_request_parser.h \
     client_response.h \
     server_config.h \
     server_config_virtualhost.h \
@@ -87,7 +89,10 @@ HEADERS += \
     client_session_encrypted.h \
     asio_server_base.h \
     asio_server_plain.h \
-    asio_server_encrypted.h
+    asio_server_encrypted.h \
+    cgi_service.h \
+    json.hpp \
+    parser_enums.h
 
 
 #***************************************************************

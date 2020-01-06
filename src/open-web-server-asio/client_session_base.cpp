@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QLocale>
 #include "rocket.h"
+#include "cgi_service.h"
 
 //constructor
 ClientSessionBase::ClientSessionBase(boost::asio::io_service& io_service) :
@@ -28,6 +29,14 @@ void ClientSessionBase::start()
 
 void ClientSessionBase::async_read_some(std::vector<char> &buffer)
 {
+    Q_UNUSED(buffer);
+}
+
+void ClientSessionBase::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    Q_UNUSED(buffer);
+    Q_UNUSED(begin_offset);
+    Q_UNUSED(max_size);
 }
 
 void ClientSessionBase::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
@@ -44,11 +53,22 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
                                    "Hello");
                                    */
 
+        //std::string req__(client_request_parser_.data_.begin(),
+        //                  client_request_parser_.data_.end());
+        //std::cout << req__ << "\r\n";
+
+        //after the first request, the client_request
+        //state and some variables should come back to their default
+        //values, so that the parser could output the correct results.
+        //This technique is used for reusing the existing allocated
+        //memory for the buffer and other member variables.
+        client_request_.cleanup();
 
 
         //first check to see if the data arrived from the client forms a complete
         //http request message (contains or ends with /r/n/r/n).
-        if (client_request_parser_.proccess_new_data(bytes_transferred, client_request_)){
+        http_parser_result res = client_request_.parse(client_request_, bytes_transferred);
+        if (res == http_parser_result::success){
             //ok, we have a complete client request. now lets process this request
             //and generate a response to send it to the client
             process_client_request();
@@ -62,10 +82,8 @@ void ClientSessionBase::handle_read(const boost::system::error_code& error, size
             async_write(vect);
             */
 
-
-
-        } else {
-            async_read_some(client_request_parser_.data_);
+        } else if (res == http_parser_result::incomplete) {
+            async_read_some(client_request_.buffer, client_request_.buffer_position, client_request_.buffer.size() - client_request_.buffer_position);
         }
     } else {
         //error on read. Usually this means that the client disconnected, so
@@ -82,7 +100,7 @@ void ClientSessionBase::process_client_request()
     //as fast as possible i have to check if the requested file
     //exist in the cache. This way the latency is reduced to the minimum for
     //the files that exist in the cache.
-    client_request_.cache_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_uri);
+    client_request_.cache_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_request_uri);
     if (client_request_.cache_iterator != rocket::cache.cached_items.end()){
         //to arxeio yparxei stin cache
         send_file_from_cache();
@@ -106,7 +124,7 @@ void ClientSessionBase::process_client_request()
             return;
         }
 
-        if (try_get_request_uri_resource(file_io) == false){
+        if (try_open_request_uri_resource(file_io) == false){
             //the requested uri was not found.
             if (client_request_.response.server_config_map_it->second.allow_directory_listing == false){
                 //if directory listing is not allowed (default) then send a 404 response
@@ -123,9 +141,73 @@ void ClientSessionBase::process_client_request()
             return;
         }
 
+        //ok the requested uri exists, so I check the config
+        //if we should serve it using cgi
+        /*
+        if (file_io.fileName().contains("php")){
+            CgiService::execute_(client_request_);
+
+
+            std::time_t t;
+            client_request_.response.header.clear();
+
+            if (client_request_.response.cgi__status == cgi_status::_200_OK){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+                rocket::get_gmt_date_time(t)).append(
+                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+                std::to_string(client_request_.response.body_in.size())).append(
+                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+                rocket::get_gmt_date_time(t)).append(
+                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+                            "no-etag").append("\"\r\n");
+            } else if (client_request_.response.cgi__status == cgi_status::_301_MOVED_PERMANENTLY){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_301_MOVED_PERMANENTLY_REDIRECT_HEADER_);
+            } else if (client_request_.response.cgi__status == cgi_status::_302_FOUND){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_);
+            } else if (client_request_.response.cgi__status == cgi_status::_303_SEE_OTHER){
+                client_request_.response.header.append(
+                HTTP_Response_Templates::_303_SEE_OTHER_REDIRECT_HEADER_);
+            } else {
+                //TODO: have to figure out what to do with the other cgi response statuses
+                return;
+            }
+
+            //std::vector<char> head_vect(client_request_.response.header.begin(),
+            //                            client_request_.response.header.end());
+
+            std::cout << client_request_.response.header << std::endl;
+
+            client_request_.response.data.clear();
+            client_request_.response.data.insert(client_request_.response.data.end(),
+                                                 client_request_.response.header.begin(),
+                                                 client_request_.response.header.end());
+
+            //client_request_.response.data.insert(client_request_.response.data.end(),
+            //                                     client_request_.response.header_in.begin(),
+            //                                     client_request_.response.header_in.end());
+
+            client_request_.response.data.insert(client_request_.response.data.end(),
+                                                 client_request_.response.data_in.begin(),
+                                                 client_request_.response.data_in.end());
+
+
+
+            //client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
+            client_request_.response.current_state = ClientResponse::state::single_send;
+            async_write(client_request_.response.data);
+
+            return;
+        }
+        */
+
+
+
         //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
         //cache, ean xwraei, kai sti synexeia tha to steilw ston client poy to zitise
-        if (add_to_cache_if_fits(file_io)){
+        else if (add_to_cache_if_fits(file_io)){
             //ok, to arxeio mpike stin cache opote to apostelw ston client
             send_file_from_cache();
             return;
@@ -155,7 +237,7 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
             //enimerwnw to yparxon megethos tis cache
             rocket::cache.cache_current_size = cache_size_with_new_file;
 
-            std::string mime_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri)).name().toStdString();
+            std::string mime_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.document_uri)).name().toStdString();
 
             QFileInfo qfile_info(file_io);
             std::string etag_ = rocket::get_next_etag();
@@ -171,7 +253,7 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
             //kataxwrw to file stin cache kai lamvanw referense pros afto
             //wste na ginei apostoli tou meta
             client_request_.cache_iterator = rocket::cache.cached_items.emplace(
-                        std::make_pair(CacheKey(client_request_.hostname_and_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
+                        std::make_pair(CacheKey(client_request_.hostname_and_request_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
 
             //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
             rocket::cache.file_system_watcher->addPath(client_request_.response.absolute_hostname_and_requested_path);
@@ -187,10 +269,12 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
 
 void ClientSessionBase::async_write(std::vector<boost::asio::const_buffer> &buffers)
 {
+    Q_UNUSED(buffers);
 }
 
 void ClientSessionBase::async_write(std::vector<char> &buffer)
 {
+    Q_UNUSED(buffer);
 }
 
 
@@ -225,9 +309,14 @@ void ClientSessionBase::send_file_from_cache(){
                 client_request_.cache_iterator->second.etag).append(
                 HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE);
 
+        // TODO: watch this video for buffer usage: https://youtu.be/rwOv_tw2eA4?t=25m48s
         std::vector<boost::asio::const_buffer> buffers;
         buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
         buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+                //std::vector<boost::asio::const_buffer> buffers {
+                //    boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()),
+                //    boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size())
+                //};
 
         client_request_.response.current_state = ClientResponse::state::single_send;
 
@@ -268,7 +357,7 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.document_uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -293,7 +382,7 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
         if (client_request_.response.current_state == ClientResponse::state::begin){
             //lamvanw to mime tou arxeiou gia na to
             //steilw sto response
-            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
+            QMimeType mime_type_ = rocket::mime_db_.mimeTypeForFile(QString::fromStdString(client_request_.document_uri));//TODO: einai grigori i function, alla kalitera na kanw diki mouylopoiisi gia mime types pou tha fortwnontai apo arxeio
             std::string response_header_str = HTTP_Response_Templates::_200_OK_NOT_CACHED_.arg(
                         mime_type_.name(),
                         QString::number(remaining_file_size)
@@ -319,7 +408,7 @@ void ClientSessionBase::read_and_send_requested_file(QFile &file_io){
 }
 
 //prospatheia lipsis tou recource pou zitithike (arxeio / fakelos)
-bool ClientSessionBase::try_get_request_uri_resource(QFile &file_io){
+bool ClientSessionBase::try_open_request_uri_resource(QFile &file_io){
     //prospathw na anoiksw to arxeio pou zitithike
     file_io.setFileName(client_request_.response.absolute_hostname_and_requested_path);
     if (file_io.open(QFileDevice::ReadOnly) == false) {
@@ -369,9 +458,9 @@ bool ClientSessionBase::try_send_directory_listing(){
         }else {
             url_encoded = file.fileName().replace(" ", "%20").toStdWString();
             //einai arxeio
-            os << "<br /><a href=""" << (QString::fromStdString(client_request_.uri).endsWith(slash) ?
-                                             QString::fromStdString(client_request_.uri).toStdWString() :
-                                             QString::fromStdString(client_request_.uri).toStdWString() +  slash.toStdWString())
+            os << "<br /><a href=""" << (QString::fromStdString(client_request_.document_uri).endsWith(slash) ?
+                                             QString::fromStdString(client_request_.document_uri).toStdWString() :
+                                             QString::fromStdString(client_request_.document_uri).toStdWString() +  slash.toStdWString())
                                         + url_encoded << """>"
             << file.fileName().toHtmlEscaped().toStdWString() << "</a>";
         }
@@ -439,7 +528,7 @@ void ClientSessionBase::handle_write(const boost::system::error_code& error)
             //i apostoli teleiwse xwris na xreiazetai na steilw kati allo, opote
             //kanw register to callback gia tin periptwsi poy tha yparxoun dedomena gia anagnwsi
             if (client_request_.connection == http_connection::keep_alive){
-                async_read_some(client_request_parser_.data_);
+                async_read_some(client_request_.buffer);
             }else {
                 //based on the headers of the client request we should close the connection
                 close_socket();

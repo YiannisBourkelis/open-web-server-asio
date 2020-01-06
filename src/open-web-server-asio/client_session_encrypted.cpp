@@ -32,7 +32,7 @@ void ClientSessionEncrypted::handle_handshake(const boost::system::error_code& e
 {
   if (!error)
   {
-      async_read_some(client_request_parser_.data_);
+      async_read_some(client_request_.buffer);
   }
   else
   {
@@ -48,6 +48,14 @@ void ClientSessionEncrypted::handle_handshake(const boost::system::error_code& e
 void ClientSessionEncrypted::async_read_some(std::vector<char> &buffer)
 {
     ssl_socket_.async_read_some(boost::asio::buffer(buffer.data(), buffer.size()),
+                            boost::bind(&ClientSessionEncrypted::handle_read, this,
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred));
+}
+
+void ClientSessionEncrypted::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    ssl_socket_.async_read_some(boost::asio::buffer((buffer.data() + begin_offset), max_size),
                             boost::bind(&ClientSessionEncrypted::handle_read, this,
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));

@@ -62,7 +62,10 @@ bool ServerConfig::is_valid_requested_hostname(ClientRequest &client_request)
     if (it != ServerConfig::server_config_map.end()){
         //to hostname vrethike opote lamvanw to path tou kai to ennonw me to
         //path tou resource pou zitithike
-        client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.uri);
+        if (client_request.document_uri.empty()){
+            client_request.document_uri = client_request.request_uri;
+        }
+        client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.document_uri);
         client_request.response.server_config_map_it = std::move(it);
         return true;
     } else {
@@ -70,7 +73,7 @@ bool ServerConfig::is_valid_requested_hostname(ClientRequest &client_request)
         it = ServerConfig::server_config_map.find("*");
         if (it != ServerConfig::server_config_map.end()){
             std::vector<QString> directoryIndexes = it->second.directoryIndexes;
-            client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.uri);
+            client_request.response.absolute_hostname_and_requested_path = it->second.DocumentRoot % QString::fromStdString(client_request.document_uri);
             client_request.response.server_config_map_it = std::move(it);
             return true;
         }
@@ -101,9 +104,10 @@ bool ServerConfig::index_exists(ClientRequest &client_request, QFile &file_io)
         if (file_io.open(QFileDevice::ReadOnly) == true) {
             //ean vrethike
             //TODO: should concatenate the strings using append because it is more efficient
-                 ends_with_slash ? client_request.uri = client_request.uri + index_filename.toStdString() :
-                         client_request.uri = client_request.uri + "/" + index_filename.toStdString();
-            return true;
+                 ends_with_slash ? client_request.document_uri = client_request.document_uri + index_filename.toStdString() :
+                         client_request.document_uri = client_request.document_uri + "/" + index_filename.toStdString();
+
+                 return true;
         }
         //epanaferw to absolute path opws itan
         client_request.response.absolute_hostname_and_requested_path = absolute_host_and_uri;

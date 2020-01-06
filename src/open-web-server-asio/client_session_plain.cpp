@@ -24,12 +24,20 @@ void ClientSessionPlain::start()
 {
     //Read some data from the client and invoke the callback
     //to proccess the client request
-    async_read_some(client_request_parser_.data_);
+    async_read_some(client_request_.buffer);
 }
 
 void ClientSessionPlain::async_read_some(std::vector<char> &buffer)
 {
     socket_.async_read_some(boost::asio::buffer(buffer.data(), buffer.size()),
+                            boost::bind(&ClientSessionPlain::handle_read, this,
+                            boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred));
+}
+
+void ClientSessionPlain::async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size)
+{
+    socket_.async_read_some(boost::asio::buffer(buffer.data() + begin_offset, max_size),
                             boost::bind(&ClientSessionPlain::handle_read, this,
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));

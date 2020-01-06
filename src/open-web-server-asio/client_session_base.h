@@ -12,7 +12,6 @@
 #include <QMimeDatabase>
 
 #include "client_request.h"
-#include "client_request_parser.h"
 #include "client_response.h"
 
 using namespace boost::asio;
@@ -26,26 +25,28 @@ public:
     //methods
     void start();
     virtual void async_read_some(std::vector<char> &buffer);
+    virtual void async_read_some(std::vector<char> &buffer, size_t begin_offset, size_t max_size);
     virtual void async_write(std::vector<boost::asio::const_buffer> &buffers);
     virtual void async_write(std::vector<char> &buffer);
     virtual void close_socket();
 
 protected:
-    ClientRequestParser client_request_parser_;
+    //variables
+    ClientRequest client_request_;
 
+    //methods
     void handle_read(const boost::system::error_code &error, size_t bytes_transferred);
     void handle_write(const boost::system::error_code &error);
 
 private:
     //variables
     boost::asio::io_service &io_service_;
-    ClientRequest client_request_;
 
 
     //methods
     void process_client_request();
     void read_and_send_requested_file(QFile &file_io);
-    bool try_get_request_uri_resource(QFile &file_io);
+    bool try_open_request_uri_resource(QFile &file_io);
     static bool is_malicious_path(QString &path);
     bool add_to_cache_if_fits(QFile &file_io);
     void send_file_from_cache();
