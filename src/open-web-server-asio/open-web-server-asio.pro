@@ -4,7 +4,7 @@
 QT -= gui
 
 CONFIG += c++17 console
-CONFIG -= app_bundle
+CONFIG -= app_bundle exceptions rtti
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

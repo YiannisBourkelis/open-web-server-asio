@@ -58,13 +58,15 @@ void rocket::takeoff(QCoreApplication *qcore_aplication)
 
 
     boost::thread_group tg;
+    std::cout << "Launching " << boost::thread::hardware_concurrency() << " worker threads..." << std::endl;
     for (unsigned i = 0; i < boost::thread::hardware_concurrency(); ++i)
     //for (unsigned i = 0; i < 4; ++i)
     {
         auto t = tg.create_thread(boost::bind(&io_service::run, &rocket::io_service));
         std::cout << t->get_id() << std::endl;
-
     }
+    std::cout << "Worker threads created successfully." << std::endl;
+    std::cout << "Web server is up and running!" << std::endl;
     tg.join_all();
 
     //rocket::io_service.run();

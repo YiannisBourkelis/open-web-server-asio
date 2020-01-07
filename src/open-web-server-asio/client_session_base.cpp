@@ -233,6 +233,7 @@ void ClientSessionBase::process_client_request()
 
 }
 
+//TODO: needs synchronization when setting rocket::cache.cache_current_size or reading other cache properties
 bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
     //elegxw ean to megethos tou arxeiou epitrepetai na mpei stin cache
     if (file_io.size() <= rocket::cache.max_file_size){
