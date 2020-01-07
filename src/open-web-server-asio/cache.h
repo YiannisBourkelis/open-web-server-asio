@@ -33,6 +33,7 @@
 #include "server_config.h"
 #include "cache_content.h"
 #include <boost/asio.hpp>
+#include <shared_mutex>
 
 class Cache : public QObject
 {
@@ -52,6 +53,7 @@ public:
 
     /************ THE CACHE ************/
     std::unordered_map<CacheKey, CacheContent> cached_items;
+    std::shared_mutex cached_items_shared_mutex;
     /***********************************/
 
     void initialize(QCoreApplication *qcore_application);

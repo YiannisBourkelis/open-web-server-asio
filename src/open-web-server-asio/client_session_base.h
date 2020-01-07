@@ -10,7 +10,7 @@
 #include <QString>
 #include <QFile>
 #include <QMimeDatabase>
-
+#include <unordered_map>
 #include "client_request.h"
 #include "client_response.h"
 
@@ -49,7 +49,7 @@ private:
     bool try_open_request_uri_resource(QFile &file_io);
     static bool is_malicious_path(QString &path);
     bool add_to_cache_if_fits(QFile &file_io);
-    void send_file_from_cache();
+    void send_file_from_cache(std::unordered_map<CacheKey, CacheContent>::iterator &cache_iterator);
     void send_404_not_found_response();
     bool try_send_directory_listing();
     void send_400_bad_request_response();

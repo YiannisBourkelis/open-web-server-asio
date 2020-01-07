@@ -62,7 +62,6 @@ public:
     int parser_content_begin_index;
 
     ClientResponse response;
-    std::unordered_map<CacheKey, CacheContent>::iterator cache_iterator;
 
     std::string hostname_and_request_uri;//ypologizetai otan ginei parse to uri kai to hostname
 

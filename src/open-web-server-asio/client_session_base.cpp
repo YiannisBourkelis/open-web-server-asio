@@ -100,123 +100,135 @@ void ClientSessionBase::process_client_request()
     //as fast as possible i have to check if the requested file
     //exist in the cache. This way the latency is reduced to the minimum for
     //the files that exist in the cache.
-    client_request_.cache_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_request_uri);
-    if (client_request_.cache_iterator != rocket::cache.cached_items.end()){
-        //to arxeio yparxei stin cache
-        send_file_from_cache();
-    } else {
-        //to arxeio den yparxei stin cache opote elegxw ean mporei na kataxwrithei afou prwta
-        //elenksw ean o sindiasmos hostname kai uri yparxei
-        //elegxw ean to hostname pou zitithike anikei se virtual server.
-        //1. Ean yparxei, thetei sto client_request.response.absolute_hostname_and_requested_path_
-        //to absolute path gia to uri pou zitithike.
-        //2. Ean den yparxei tote psaxei ean yparxei default vistual host
-        QFile file_io;
-        if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
-            //TODO: den vrethike to hostname pou zitithike
-            send_404_not_found_response();
+    {
+        std::shared_lock<std::shared_mutex> g(rocket::cache.cached_items_shared_mutex);
+        auto cached_items_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_request_uri);
+        if (cached_items_iterator != rocket::cache.cached_items.end()){
+            //to arxeio yparxei stin cache
+            send_file_from_cache(cached_items_iterator);
             return;
         }
+    }
 
-        //elegxw ean to path pou zitithike den einai malicious
-        if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)){
-            send_400_bad_request_response();
-            return;
-        }
-
-        if (try_open_request_uri_resource(file_io) == false){
-            //the requested uri was not found.
-            if (client_request_.response.server_config_map_it->second.allow_directory_listing == false){
-                //if directory listing is not allowed (default) then send a 404 response
+    {
+            //to arxeio den yparxei stin cache opote elegxw ean mporei na kataxwrithei afou prwta
+            //elenksw ean o sindiasmos hostname kai uri yparxei
+            //elegxw ean to hostname pou zitithike anikei se virtual server.
+            //1. Ean yparxei, thetei sto client_request.response.absolute_hostname_and_requested_path_
+            //to absolute path gia to uri pou zitithike.
+            //2. Ean den yparxei tote psaxei ean yparxei default vistual host
+            if (ServerConfig::is_valid_requested_hostname(client_request_) == false){
+                //TODO: den vrethike to hostname pou zitithike
                 send_404_not_found_response();
-            } else {
-                //if directory listing is allowed then send the directory listing
-                if (try_send_directory_listing() == false){
-                    //if the directory requested does not exist
-                    //return 404
-                    send_404_not_found_response();
-                }
-            }
-
-            return;
-        }
-
-        //ok the requested uri exists, so I check the config
-        //if we should serve it using cgi
-        /*
-        if (file_io.fileName().contains("php")){
-            CgiService::execute_(client_request_);
-
-
-            std::time_t t;
-            client_request_.response.header.clear();
-
-            if (client_request_.response.cgi__status == cgi_status::_200_OK){
-                client_request_.response.header.append(
-                HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
-                rocket::get_gmt_date_time(t)).append(
-                HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
-                std::to_string(client_request_.response.body_in.size())).append(
-                HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
-                rocket::get_gmt_date_time(t)).append(
-                HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
-                            "no-etag").append("\"\r\n");
-            } else if (client_request_.response.cgi__status == cgi_status::_301_MOVED_PERMANENTLY){
-                client_request_.response.header.append(
-                HTTP_Response_Templates::_301_MOVED_PERMANENTLY_REDIRECT_HEADER_);
-            } else if (client_request_.response.cgi__status == cgi_status::_302_FOUND){
-                client_request_.response.header.append(
-                HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_);
-            } else if (client_request_.response.cgi__status == cgi_status::_303_SEE_OTHER){
-                client_request_.response.header.append(
-                HTTP_Response_Templates::_303_SEE_OTHER_REDIRECT_HEADER_);
-            } else {
-                //TODO: have to figure out what to do with the other cgi response statuses
                 return;
             }
 
-            //std::vector<char> head_vect(client_request_.response.header.begin(),
-            //                            client_request_.response.header.end());
+            //elegxw ean to path pou zitithike den einai malicious
+            if(is_malicious_path(client_request_.response.absolute_hostname_and_requested_path)){
+                send_400_bad_request_response();
+                return;
+            }
 
-            std::cout << client_request_.response.header << std::endl;
+            QFile file_io;
+            if (try_open_request_uri_resource(file_io) == false){
+                //the requested uri was not found.
+                if (client_request_.response.server_config_map_it->second.allow_directory_listing == false){
+                    //if directory listing is not allowed (default) then send a 404 response
+                    send_404_not_found_response();
+                    return;
+                } else {
+                    //if directory listing is allowed then send the directory listing
+                    if (try_send_directory_listing() == false){
+                        //if the directory requested does not exist
+                        //return 404
+                        send_404_not_found_response();
+                    }
+                }
 
-            client_request_.response.data.clear();
-            client_request_.response.data.insert(client_request_.response.data.end(),
-                                                 client_request_.response.header.begin(),
-                                                 client_request_.response.header.end());
+                return;
+            }
 
-            //client_request_.response.data.insert(client_request_.response.data.end(),
-            //                                     client_request_.response.header_in.begin(),
-            //                                     client_request_.response.header_in.end());
-
-            client_request_.response.data.insert(client_request_.response.data.end(),
-                                                 client_request_.response.data_in.begin(),
-                                                 client_request_.response.data_in.end());
+            //ok the requested uri exists, so I check the config
+            //if we should serve it using cgi
+            /*
+            if (file_io.fileName().contains("php")){
+                CgiService::execute_(client_request_);
 
 
+                std::time_t t;
+                client_request_.response.header.clear();
 
-            //client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
-            client_request_.response.current_state = ClientResponse::state::single_send;
-            async_write(client_request_.response.data);
+                if (client_request_.response.cgi__status == cgi_status::_200_OK){
+                    client_request_.response.header.append(
+                    HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
+                    rocket::get_gmt_date_time(t)).append(
+                    HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
+                    std::to_string(client_request_.response.body_in.size())).append(
+                    HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
+                    rocket::get_gmt_date_time(t)).append(
+                    HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
+                                "no-etag").append("\"\r\n");
+                } else if (client_request_.response.cgi__status == cgi_status::_301_MOVED_PERMANENTLY){
+                    client_request_.response.header.append(
+                    HTTP_Response_Templates::_301_MOVED_PERMANENTLY_REDIRECT_HEADER_);
+                } else if (client_request_.response.cgi__status == cgi_status::_302_FOUND){
+                    client_request_.response.header.append(
+                    HTTP_Response_Templates::_302_FOUND_REDIRECT_HEADER_);
+                } else if (client_request_.response.cgi__status == cgi_status::_303_SEE_OTHER){
+                    client_request_.response.header.append(
+                    HTTP_Response_Templates::_303_SEE_OTHER_REDIRECT_HEADER_);
+                } else {
+                    //TODO: have to figure out what to do with the other cgi response statuses
+                    return;
+                }
 
-            return;
-        }
-        */
+                //std::vector<char> head_vect(client_request_.response.header.begin(),
+                //                            client_request_.response.header.end());
+
+                std::cout << client_request_.response.header << std::endl;
+
+                client_request_.response.data.clear();
+                client_request_.response.data.insert(client_request_.response.data.end(),
+                                                     client_request_.response.header.begin(),
+                                                     client_request_.response.header.end());
+
+                //client_request_.response.data.insert(client_request_.response.data.end(),
+                //                                     client_request_.response.header_in.begin(),
+                //                                     client_request_.response.header_in.end());
+
+                client_request_.response.data.insert(client_request_.response.data.end(),
+                                                     client_request_.response.data_in.begin(),
+                                                     client_request_.response.data_in.end());
 
 
 
-        //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
-        //cache, ean xwraei, kai sti synexeia tha to steilw ston client poy to zitise
-        else if (add_to_cache_if_fits(file_io)){
-            //ok, to arxeio mpike stin cache opote to apostelw ston client
-            send_file_from_cache();
-            return;
-        } else {
+                //client_request_.response.data = std::vector<char>(resp.begin(), resp.end());
+                client_request_.response.current_state = ClientResponse::state::single_send;
+                async_write(client_request_.response.data);
+
+                return;
+            }
+            */
+
+            //ok to arxeio pou zitithike yparxei opote tha to apothikefsw stin
+            //cache, ean xwraei, kai sti synexeia tha to steilw ston client poy to zitise
+            add_to_cache_if_fits(file_io);
+            //ok, to arxeio endexomenws mpike stin cache opote to apostelw ston client
+            {
+                    std::shared_lock<std::shared_mutex> g(rocket::cache.cached_items_shared_mutex);
+                    auto cached_items_iterator = rocket::cache.cached_items.find(client_request_.hostname_and_request_uri);
+                    if (cached_items_iterator != rocket::cache.cached_items.end()){
+                        //to arxeio yparxei stin cache
+                        send_file_from_cache(cached_items_iterator);
+                        return;
+                    }
+            }
+
             //to arxeio den mporei na mpei stin cache, opote
             //to stelnw diavazontas to apeftheias apo to meso apothikefsis.
             client_request_.response.bytes_of_file_sent = 0;
             read_and_send_requested_file(file_io);
-        }
+            return;
     }
 
 }
@@ -252,15 +264,18 @@ bool ClientSessionBase::add_to_cache_if_fits(QFile &file_io){
 
             //kataxwrw to file stin cache kai lamvanw referense pros afto
             //wste na ginei apostoli tou meta
-            client_request_.cache_iterator = rocket::cache.cached_items.emplace(
-                        std::make_pair(CacheKey(client_request_.hostname_and_request_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content)).first;
-
+            {
+                std::lock_guard<std::shared_mutex> g(rocket::cache.cached_items_shared_mutex);
+                rocket::cache.cached_items.emplace(
+                        std::make_pair(CacheKey(client_request_.hostname_and_request_uri,client_request_.response.absolute_hostname_and_requested_path), cache_content));
+            }
             //TODO: afou topothetithike to arxeio stin cache, to kataxwrw kai sto filesystemwatcher
             rocket::cache.file_system_watcher->addPath(client_request_.response.absolute_hostname_and_requested_path);
             return true;
         } else {
             //cache does not have available space for the file to fit
             //so I cleanup the cache. Maybe in the next request the file will fit inside the cache
+            std::lock_guard<std::shared_mutex> g(rocket::cache.cached_items_shared_mutex);
             rocket::cache.remove_older_items();
         }
     }
@@ -278,7 +293,7 @@ void ClientSessionBase::async_write(std::vector<char> &buffer)
 }
 
 
-void ClientSessionBase::send_file_from_cache(){
+void ClientSessionBase::send_file_from_cache(std::unordered_map<CacheKey, CacheContent>::iterator &cache_iterator){
     if (client_request_.is_range_request == false){
         //apostelw prwta ta headers
         /*
@@ -298,21 +313,21 @@ void ClientSessionBase::send_file_from_cache(){
                 client_request_.response.header.clear();
                 client_request_.response.header.append(
                 HTTP_Response_Templates::_200_OK_UNTIL_DATE_VALUE_).append(
-                rocket::get_gmt_date_time(client_request_.cache_iterator->second.last_access_time)).append(
+                rocket::get_gmt_date_time(cache_iterator->second.last_access_time)).append(
                 HTTP_Response_Templates::_200_OK_UNTIL_CONTENT_TYPE_VALUE_).append(
-                client_request_.cache_iterator->second.mime_type).append(
+                cache_iterator->second.mime_type).append(
                 HTTP_Response_Templates::_200_OK_CONTENT_LENGTH_).append(
-                client_request_.cache_iterator->second.get_data_size_as_string()).append(
+                cache_iterator->second.get_data_size_as_string()).append(
                 HTTP_Response_Templates::_200_OK_AFTER_CONTENT_LENGTH_VALUE_).append(
-                client_request_.cache_iterator->second.last_modified).append(
+                cache_iterator->second.last_modified).append(
                 HTTP_Response_Templates::_200_OK_AFTER_LAST_MODIFIED_).append(
-                client_request_.cache_iterator->second.etag).append(
+                cache_iterator->second.etag).append(
                 HTTP_Response_Templates::_200_OK_AFTER_ETAG_VALUE);
 
         // TODO: watch this video for buffer usage: https://youtu.be/rwOv_tw2eA4?t=25m48s
         std::vector<boost::asio::const_buffer> buffers;
         buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
-        buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size()));
+        buffers.push_back(boost::asio::const_buffer(cache_iterator->second.data.data(), cache_iterator->second.data.size()));
                 //std::vector<boost::asio::const_buffer> buffers {
                 //    boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()),
                 //    boost::asio::const_buffer(client_request_.cache_iterator->second.data.data(), client_request_.cache_iterator->second.data.size())
@@ -326,17 +341,17 @@ void ClientSessionBase::send_file_from_cache(){
         unsigned long long int range_size = (client_request_.range_until_byte - client_request_.range_from_byte) + 1;
         //apostelw prwta ta headers
         QString response_header = HTTP_Response_Templates::_206_PARTIAL_CONTENT_RESPONSE_HEADER.arg(
-                    QString::fromStdString(client_request_.cache_iterator->second.mime_type),
+                    QString::fromStdString(cache_iterator->second.mime_type),
                     QString::number(range_size),
                     QString::number(client_request_.range_from_byte),
                     QString::number(client_request_.range_until_byte),
-                    QString::number(client_request_.cache_iterator->second.data.size())
+                    QString::number(cache_iterator->second.data.size())
                     );
         client_request_.response.header = response_header.toStdString();
 
         std::vector<boost::asio::const_buffer> buffers;
         buffers.push_back(boost::asio::const_buffer(client_request_.response.header.data(), client_request_.response.header.size()));
-        buffers.push_back(boost::asio::const_buffer(client_request_.cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
+        buffers.push_back(boost::asio::const_buffer(cache_iterator->second.data.data() + client_request_.range_from_byte, range_size));
 
         client_request_.response.current_state = ClientResponse::state::single_send;
 
