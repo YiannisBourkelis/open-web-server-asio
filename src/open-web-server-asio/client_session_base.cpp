@@ -106,6 +106,8 @@ void ClientSessionBase::process_client_request()
         if (cached_items_iterator != rocket::cache.cached_items.end()){
             //to arxeio yparxei stin cache
             send_file_from_cache(cached_items_iterator);
+            //TODO: should find a fast way to modify the cached item last_access_time. The following is not tested yet.
+            //cached_items_iterator->second.last_access_time = std::chrono::system_clock::now().time_since_epoch().count();
             return;
         }
     }
