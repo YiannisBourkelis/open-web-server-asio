@@ -5,6 +5,7 @@ QT -= gui
 
 CONFIG += c++17 console
 CONFIG -= app_bundle exceptions rtti
+linux: QMAKE_CXXFLAGS += -std=c++17
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -69,9 +70,11 @@ mac:LIBS += -L/usr/local/Cellar/boost/1.72.0/lib/ -lboost_thread-mt
 # ./b2 install
 # - For faster build times you can also choose to build only boost_system.
 # - Update the related INCLUDEPATH and LIBS variables bellow
+# or install the development libraries on linux:
+# sudo apt-get install libboost-all-dev
 linux:INCLUDEPATH += "/home/pi/boost_1_66/boost_1_66_0" #for my raspberri pi
 linux:LIBS += -L/home/pi/boost_1_66/boost_1_66_0/stage/lib/ #for my raspberri pi
-linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system
+linux:LIBS += -L/usr/lib/x86_64-linux-gnu -lboost_system -lboost_thread
 
 HEADERS += \
     rocket.h \
@@ -145,6 +148,8 @@ windows:INCLUDEPATH += C:/Users/Yiannis/Documents/GitHub/OpenSSL-1.1.0g/include/
 # 2)    make clean
 # 3)    make
 # this should compile openssl on linux
+# or install the development libraries on linux:
+# sudo apt-get install libssl-devel
 linux:LIBS += -L$$PWD/../OpenSSL-1.1.0g -lssl
 linux:LIBS += -L$$PWD/../OpenSSL-1.1.0g -lcrypto
 linux:INCLUDEPATH += $$PWD/../OpenSSL-1.1.0g/include

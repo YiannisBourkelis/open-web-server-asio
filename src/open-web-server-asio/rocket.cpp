@@ -104,6 +104,7 @@ const std::string rocket::get_next_etag()
     if(etag_ == ULONG_LONG_MAX){
 #endif
         etag_ = 0;
+        //TODO: I better remove all items from cache here, in the rare case where etag_ resets to 0
     }
     return std::to_string(++etag_);
 }
