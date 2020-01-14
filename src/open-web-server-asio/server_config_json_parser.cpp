@@ -22,7 +22,6 @@
 #include <QFile>
 #include <iostream>
 #include <fstream>
-#include "json.hpp"
 #include <QCoreApplication>
 
 ServerConfigJsonParser::ServerConfigJsonParser()
@@ -83,7 +82,15 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
                     /******* HERE A NEW SERVER IS CREATED AND IS LISTENING FOR INCOMMING CONNECTIONS ****/
                     if (is_encrypted_server){
 #ifndef NO_ENCRYPTION
-                        server_open_ports.insert(std::make_pair(port_, new AsioServerEncrypted(io_service_, port_)));
+                        auto str_cert_chain = std::string("certificate_chain_file");
+                        auto str_priv_key = std::string("private_key_file");
+                        if (loadCertificationFile(listen__, str_cert_chain) &&
+                                loadCertificationFile(listen__, str_priv_key)){
+                            server_open_ports.insert(std::make_pair(port_, new AsioServerEncrypted(io_service_,
+                                                                                                   port_,
+                                                                                                   listen__[str_cert_chain].get<std::string>(),
+                                                                                                   listen__[str_priv_key].get<std::string>())));
+                        }
 #endif
                     } else {
                         server_open_ports.insert(std::make_pair(port_, new AsioServerPlain(io_service_, port_)));
@@ -116,4 +123,21 @@ bool ServerConfigJsonParser::parse_config_file(const QString &filename,
     //AsioServer *a = new AsioServer(io_service_, 12343);
 
     return true;
+}
+
+bool ServerConfigJsonParser::loadCertificationFile(nlohmann::json &listen__, std::string &certificate_file)
+{
+    if (listen__[certificate_file].is_string()){
+        std::cout << "Trying to load certificate_chain_file at:" << listen__[certificate_file].get<std::string>() <<  std::endl;
+        std::ifstream certificate_chain_file_stream(listen__["certificate_chain_file"].get<std::string>());
+        if (!certificate_chain_file_stream.is_open()){
+            std::cout << "Could not find certificate_chain_file at: " << listen__["certificate_chain_file"].get<std::string>() << "\r\n";
+            return false;
+        }
+        std::cout << "certificate_chain_file file found\r\n";
+        return true;
+    } else {
+        std::cout << "certificate_chain_file setting is missing" <<std::endl;
+    }
+    return false;
 }

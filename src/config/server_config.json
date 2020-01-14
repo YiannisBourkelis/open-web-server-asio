@@ -15,7 +15,8 @@
           {"port" : 12346},
           {"port" : 12347,
             "encryption" : true,
-            "ssl_certificate" : "/path/to/certificate.pem",
+            "certificate_chain_file" : "/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/certificate.pem",
+            "private_key_file" : "/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/key.pem",
             "ssl_protocols" : ["TLSv1.1","TLSv1.2"]
           }
         ],

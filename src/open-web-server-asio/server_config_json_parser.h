@@ -23,7 +23,7 @@
 
 #include "server_config_virtualhost.h"
 #include "server_config_parser_base.h"
-
+#include "json.hpp"
 
 class ServerConfigJsonParser : public ServerConfigParserBase
 {
@@ -35,6 +35,8 @@ public:
                                    std::unordered_map<QString, ServerConfigVirtualHost> &server_config_map,
                                    std::unordered_map<short, AsioServerBase *> &server_open_ports,
                                    io_service &io_service_);
+private slots:
+    bool loadCertificationFile(nlohmann::json &listen__, std::string &certificate_file);
 };
 
 #endif // SERVER_CONFIG_JSON_PARSER_H

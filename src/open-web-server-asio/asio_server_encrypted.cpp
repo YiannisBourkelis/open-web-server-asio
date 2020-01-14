@@ -2,9 +2,14 @@
 #include "asio_server_encrypted.h"
 
 //constructor. Starts the server and begins accepting connections
-AsioServerEncrypted::AsioServerEncrypted(io_service &io_service, short port) :
+AsioServerEncrypted::AsioServerEncrypted(io_service &io_service,
+                                         short port,
+                                         std::string certificate_chain_file,
+                                         std::string private_key_file) :
     AsioServerBase(io_service, port),
-    context_(boost::asio::ssl::context::tlsv12)
+    context_(boost::asio::ssl::context::tlsv12),
+    _certificate_chain_file(certificate_chain_file),
+    _private_key_file(private_key_file)
 {
     //encryption specific
     context_.set_options(
@@ -15,8 +20,10 @@ AsioServerEncrypted::AsioServerEncrypted(io_service &io_service, short port) :
    context_.use_certificate_chain_file("C:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/certificate.pem");
     context_.use_private_key_file("C:/Users/Yiannis/Documents/GitHub/poll-echo-client-server/src/key.pem", boost::asio::ssl::context::pem);
 #else
-    context_.use_certificate_chain_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/certificate.pem");
-    context_.use_private_key_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/key.pem", boost::asio::ssl::context::pem);
+    //context_.use_certificate_chain_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/certificate.pem");
+    //context_.use_private_key_file("/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/key.pem", boost::asio::ssl::context::pem);
+    context_.use_certificate_chain_file(_certificate_chain_file);
+    context_.use_private_key_file(_private_key_file, boost::asio::ssl::context::pem);
 #endif
     //context_.use_tmp_dh_file("dh2048.pem");
 
