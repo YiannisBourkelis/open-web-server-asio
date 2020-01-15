@@ -150,6 +150,9 @@ windows:INCLUDEPATH += C:/Users/Yiannis/Documents/GitHub/OpenSSL-1.1.0g/include/
 # this should compile openssl on linux
 # or install the development libraries on linux:
 # sudo apt-get install libssl-devel
+# -
+# To create the self signed certificate:
+# openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
 linux:LIBS += -L$$PWD/../OpenSSL-1.1.0g -lssl
 linux:LIBS += -L$$PWD/../OpenSSL-1.1.0g -lcrypto
 linux:INCLUDEPATH += $$PWD/../OpenSSL-1.1.0g/include
