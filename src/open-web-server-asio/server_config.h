@@ -25,7 +25,7 @@
 #include "server_config_parser_base.h"
 #include "qstring_hash_specialization.h"
 #include <QString>
-#include <QStringRef>
+#include <QStringView>
 #include <QFile>
 #include <QCoreApplication>
 #include "client_request.h"

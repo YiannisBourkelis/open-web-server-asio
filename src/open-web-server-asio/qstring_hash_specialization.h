@@ -18,6 +18,8 @@
  * along with Open Web Server.  If not, see <http://www.gnu.org/licenses/>.
  * ***********************************************************************/
 
+/*
+
 #ifndef QSTRING_HASH_SPECIALIZATION_H
 #define QSTRING_HASH_SPECIALIZATION_H
 
@@ -35,3 +37,5 @@ namespace std
 }
 
 #endif // QSTRING_HASH_SPECIALIZATION_H
+
+*/

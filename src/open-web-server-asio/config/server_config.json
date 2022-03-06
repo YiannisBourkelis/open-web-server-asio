@@ -1,0 +1,138 @@
+ {
+
+
+  "http" :
+  [
+
+
+    {
+      "virtual_host" : {
+        "server_name": ["localhost"],
+
+        "listen" : [
+          {"port" : 12343},
+          {"port" : 12345},
+          {"port" : 12346},
+          {"port" : 12347,
+            "encryption" : true,
+            "certificate_chain_file" : "/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/certificate.pem",
+            "private_key_file" : "/Users/yiannis/Projects/poll-echo-client-server-gihub/poll-echo-client-server/src/key.pem",
+            "ssl_protocols" : ["TLSv1.1","TLSv1.2"]
+          }
+        ],
+
+        "document_root" : "/Users/yiannis/www/default/public_html",
+        "directory_listing" : true,
+
+        "tcp_nodelay" : true
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.142"],
+
+        "listen" : [
+          {"port" : 12343},
+          {"port" : 12345},
+          {"port" : 12346}
+        ],
+
+        "document_root" : "/Users/yiannis/Downloads/wordpress",
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.121"],
+
+        "listen" : [
+          {"port" : 12343}
+        ],
+
+        "document_root" : "/Users/yiannis/Downloads/Joomla_3.8.5-Stable-Full_Package",
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+
+    {
+      "virtual_host" : {
+        "server_name": ["192.168.32.111"],
+
+        "listen" : [
+          {"port" : 12343}
+        ],
+
+        "document_root" : "/Users/yiannis/Downloads/drupal-8.5.0",
+        "directory_listing" : false,
+
+        "proxy_pass" : "http://localhost:5000",
+        "tcp_nodelay" : true,
+
+        "location" : [
+          {"uri" : "*",
+          "file_extension" : "php",
+          "cgi" : "php-cgi",
+          "proxy_pass" : "http://localhost:5000"}
+        ]
+      }
+    },
+
+    {
+      "virtual_host" : {
+        "server_name": ["*"],
+
+        "listen" : [
+          {"port" : 12344,
+            "encryption" : true,
+            "ssl_certificate" : "/path/to/certificate.crt",
+            "ssl_protocols" : ["TLSv1.1","TLSv1.2"]
+          }
+        ],
+
+        "document_root" : "/Users/yiannis/www/localhost/public_html",
+        "directory_listing" : true
+      }
+    }
+
+
+  ],
+
+  "server" : {
+
+    "cache" : {
+      "total_size" : "102400",
+      "maximum_file_size" : "5120",
+      "cleanup_percentage" : "15"
+    },
+
+    "send_file_chunk_size" : "32768",
+
+    "indexes" : ["7ff.html","index.htm","default.html","default.htm"]
+  }
+
+
+
+}
