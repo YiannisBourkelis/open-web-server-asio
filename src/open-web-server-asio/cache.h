@@ -26,7 +26,6 @@
 #include <QString>
 #include <vector>
 #include <QFileSystemWatcher>
-#include "qstring_hash_specialization.h"
 #include <QObject>
 #include "cache_key.h"
 #include <QCoreApplication>

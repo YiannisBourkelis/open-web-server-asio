@@ -22,7 +22,6 @@
 #define SERVER_CONFIG_PARSER_BASE_H
 
 #include <QString>
-#include "qstring_hash_specialization.h"
 #include <unordered_map>
 #include "server_config_virtualhost.h"
 #include "server_config_virtualhost_portinfo.h"

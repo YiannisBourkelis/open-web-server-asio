@@ -2,7 +2,6 @@
 #define CLIENT_RESPONSE_H
 
 #include <unordered_map>
-#include "qstring_hash_specialization.h"
 #include "server_config_virtualhost.h"
 #include <vector>
 
